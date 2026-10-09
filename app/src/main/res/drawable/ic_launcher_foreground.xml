@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 108x108, видимата зона е центърът 66x66: синьо "балонче" с бяло "A" -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M36,30 L72,30 Q80,30 80,38 L80,62 Q80,70 72,70 L52,70 L42,80 L43,70 L36,70 Q28,70 28,62 L28,38 Q28,30 36,30 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M50.5,36 L57.5,36 L67,64 L61,64 L58.8,57 L49.2,57 L47,64 L41,64 Z M50.6,52 L57.4,52 L54,41 Z" />
+</vector>
