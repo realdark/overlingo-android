@@ -8,7 +8,7 @@ class CropBoundsTest {
 
     @Test
     fun cropOfSameSizeBitmap() {
-        // Кадър 4:3 (2592x1944), екранът показва средата с формат 9:16 в ширина -> само средна ивица.
+        // 4:3 frame (2592x1944), the screen shows the middle at a 9:16 width ratio -> only a central strip.
         assertArrayEquals(
             intArrayOf(750, 0, 1094, 1944),
             ImageLoader.cropBounds(2592, 1944, 2592, 1944, 750, 0, 1844, 1944),

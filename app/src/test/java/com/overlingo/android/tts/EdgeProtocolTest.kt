@@ -9,12 +9,12 @@ class EdgeProtocolTest {
 
     @Test
     fun secMsGecMatchesEdgeTts() {
-        // Стойността е изчислена със същата формула като drm.py в edge-tts.
+        // The value was computed with the same formula as drm.py in edge-tts.
         assertEquals(
             "A70BE98FDEC154E8EAB9A86F9653186A19C081EB633F37CEEDCB7B25F6DD2575",
             EdgeProtocol.secMsGec(1_759_590_000L),
         )
-        // В рамките на 5 минути токенът е един и същ.
+        // Within the same 5-minute window the token is identical.
         assertEquals(EdgeProtocol.secMsGec(1_759_590_000L), EdgeProtocol.secMsGec(1_759_590_299L))
     }
 
@@ -98,10 +98,10 @@ class EdgeProtocolTest {
     fun pickVoiceByLanguageAndGender() {
         assertEquals("bg-BG-KalinaNeural", EdgeProtocol.pickVoice(voices, "bg", VoiceGender.FEMALE)?.shortName)
         assertEquals("bg-BG-BorislavNeural", EdgeProtocol.pickVoice(voices, "bg", VoiceGender.MALE)?.shortName)
-        // en -> en-US, класическият глас пред детския AnaNeural
+        // en -> en-US, the classic voice is preferred over the child voice AnaNeural
         assertEquals("en-US-AriaNeural", EdgeProtocol.pickVoice(voices, "en", VoiceGender.FEMALE)?.shortName)
         assertEquals("zh-CN-XiaoxiaoNeural", EdgeProtocol.pickVoice(voices, "zh-CN", VoiceGender.FEMALE)?.shortName)
-        // няма мъжки норвежки глас -> женският
+        // no male Norwegian voice -> the female one
         assertEquals("nb-NO-PernilleNeural", EdgeProtocol.pickVoice(voices, "nb", VoiceGender.MALE)?.shortName)
         assertNull(EdgeProtocol.pickVoice(voices, "mk", VoiceGender.FEMALE))
     }

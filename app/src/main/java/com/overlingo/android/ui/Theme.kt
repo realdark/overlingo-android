@@ -5,7 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-/** Тъмна тема в цветовете на десктоп версията (синьо #3B82F6 върху тъмно сиво). */
+/** Dark theme in the desktop version's colors (blue #3B82F6 on dark gray). */
 private val OverlingoColors = darkColorScheme(
     primary = Color(0xFF3B82F6),
     onPrimary = Color.White,

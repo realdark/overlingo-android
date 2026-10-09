@@ -7,9 +7,9 @@ import kotlinx.coroutines.CancellationException
 import okhttp3.OkHttpClient
 
 /**
- * Вече преведен текст -> превод, за да не се праща същата заявка пак.
- * Ключ: текстът (без разлика в интервалите и главните букви) + целевият език.
- * Пази най-много maxItems записа; при препълване отпада най-отдавна ползваният.
+ * Already translated text -> translation, so the same request isn't sent again.
+ * Key: the text (ignoring whitespace and case differences) + the target language.
+ * Keeps at most maxItems entries; when full, the least recently used one is dropped.
  */
 class TranslationCache(private val maxItems: Int = 500) {
 
@@ -37,9 +37,9 @@ class TranslationCache(private val maxItems: Int = 500) {
 }
 
 /**
- * Резултат от превода на няколко текста.
- * usedFallback - платената услуга не сработи и е ползван Google;
- * usedOffline - нямаше интернет и е преведено на телефона (със свалени модели).
+ * Result of translating several texts.
+ * usedFallback - the paid service failed and Google was used instead;
+ * usedOffline - there was no internet and it was translated on the device (with downloaded models).
  */
 data class TranslationOutcome(
     val translations: List<String>,
@@ -47,16 +47,16 @@ data class TranslationOutcome(
     val usedOffline: Boolean = false,
 )
 
-/** Офлайн преводачът като обикновен Translator. */
+/** The offline translator as a regular Translator. */
 class OfflineAdapter(private val offline: OfflineTranslator, private val allowDownload: Boolean) : Translator {
     override suspend fun translate(texts: List<String>, target: Language): List<String> =
         offline.translate(texts, target, allowDownload)
 }
 
 /**
- * Избира преводача според настройките и ползва кеша. Резервни варианти:
- *  - платена услуга (DeepL/Microsoft) даде грешка -> Google;
- *  - няма интернет -> превод на телефона, ако моделите за езиците вече са свалени.
+ * Picks the translator based on the settings and uses the cache. Fallbacks:
+ *  - paid service (DeepL/Microsoft) returned an error -> Google;
+ *  - no internet -> on-device translation, if the language models are already downloaded.
  */
 class TranslationEngine(
     private val http: OkHttpClient,
@@ -69,7 +69,7 @@ class TranslationEngine(
 
     suspend fun translate(texts: List<String>, settings: AppSettings): TranslationOutcome {
         val target = settings.target
-        // В кеша влиза и услугата: след смяна на Google -> DeepL искаме превода на DeepL, не стария.
+        // The service is part of the cache key: after switching Google -> DeepL we want DeepL's translation, not the old one.
         val cacheKey = "${target.code}/${settings.service.key}"
         val result = arrayOfNulls<String>(texts.size)
         val missing = mutableListOf<Int>()
@@ -99,7 +99,7 @@ class TranslationEngine(
                         } catch (cancel: CancellationException) {
                             throw cancel
                         } catch (offlineError: Exception) {
-                            throw e // моделите не са свалени - показваме "няма интернет"
+                            throw e // models not downloaded - show "no internet"
                         }
                     }
                     else -> throw e
@@ -108,7 +108,7 @@ class TranslationEngine(
             missing.forEachIndexed { i, index ->
                 val text = translated.getOrElse(i) { "" }
                 result[index] = text
-                // Резервните преводи не се кешират - при следващ опит да пробва основната услуга.
+                // Fallback translations aren't cached - so the next attempt tries the primary service again.
                 if (text.isNotBlank() && !usedFallback && !usedOffline) cache.put(texts[index], text, cacheKey)
             }
         }

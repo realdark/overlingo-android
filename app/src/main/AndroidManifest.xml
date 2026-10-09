@@ -5,14 +5,14 @@
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Проверка има ли мрежа, преди да се сваля модел за офлайн превод -->
+    <!-- Check for network access before downloading an offline translation model -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Само за "Запази в галерията" на Android 8-9; от Android 10 не е нужно -->
+    <!-- Only for "Save to gallery" on Android 8-9; not needed from Android 10 on -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
-    <!-- Android 11+: позволява да проверим кой гласов модул (TTS) е наличен -->
+    <!-- Android 11+: lets us check which speech engine (TTS) is available -->
     <queries>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
@@ -37,7 +37,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- "Сподели" -> Overlingo: снимка или текст от друго приложение -->
+            <!-- "Share" -> Overlingo: an image or text from another app -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -50,7 +50,7 @@
             </intent-filter>
         </activity>
 
-        <!-- "Сподели" на снимката с преводите: временен файл в кеша -->
+        <!-- "Share" for the image with translations: a temporary file in the cache -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -61,7 +61,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Пази избрания език на интерфейса и на Android под 13 -->
+        <!-- Persists the selected UI language on Android below 13 as well -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"

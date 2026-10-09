@@ -18,7 +18,7 @@ android {
 
     buildTypes {
         release {
-            // Без R8 - APK-то е за лична употреба, а ML Kit не изисква съкращаване.
+            // No R8 - the APK is for personal use, and ML Kit doesn't require shrinking.
             isMinifyEnabled = false
         }
     }
@@ -61,16 +61,16 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Разпознаване на текст - Google ML Kit (латиница), моделът е вграден в APK-то и работи офлайн
+    // Text recognition - Google ML Kit (Latin script); the model is bundled in the APK and works offline
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
-    // Превод на телефона без интернет (модели ~30 MB на език, свалят се при нужда)
-    // и разпознаване на езика на оригинала
+    // On-device translation without internet (models ~30 MB per language, downloaded on demand)
+    // and detection of the source language
     implementation("com.google.mlkit:translate:17.0.3")
     implementation("com.google.mlkit:language-id:17.0.6")
 
     testImplementation("junit:junit:4.13.2")
-    // org.json от Android не работи в обикновени (JVM) тестове - истинската библиотека
+    // Android's org.json doesn't work in plain (JVM) tests - use the real library
     testImplementation("org.json:json:20240303")
 }

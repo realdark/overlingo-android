@@ -14,19 +14,19 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * Зареждане и подготовка на снимки.
+ * Loading and preparing photos.
  *
- * Всичко се смалява до MAX_SIDE пиксела по дългата страна: стига за
- * разпознаване на текста (ML Kit иска поне ~16 px на буква), а пести памет.
+ * Everything is scaled down to MAX_SIDE pixels on the long side: enough for
+ * text recognition (ML Kit needs at least ~16 px per character), while saving memory.
  */
 object ImageLoader {
 
     const val MAX_SIDE = 3200
 
     /**
-     * Снимка от камерата: смалява и завърта според сензора (в този ред - по-малко
-     * памет). Междинните копия се освобождават веднага - снимката от камерата е
-     * само за тази обработка и никой друг не я държи.
+     * Photo from the camera: scales down and rotates per the sensor (in that order - less
+     * memory). Intermediate copies are recycled right away - the camera photo exists
+     * only for this processing and nothing else holds on to it.
      */
     fun fromCamera(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
         val scaled = scaleDown(bitmap, MAX_SIDE)
@@ -36,7 +36,7 @@ object ImageLoader {
         return rotated
     }
 
-    /** Снимка от галерията или "Сподели": смалява още при декодиране и я изправя. */
+    /** Photo from the gallery or "Share": scales down already while decoding and makes it upright. */
     fun fromUri(context: Context, uri: Uri): Bitmap {
         val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             decodeWithImageDecoder(context, uri)
@@ -47,9 +47,9 @@ object ImageLoader {
     }
 
     /**
-     * Android 9+: ImageDecoder чете и HEIC/HEIF (снимките на Samsung) и сам
-     * завърта снимката според EXIF. Софтуерен bitmap - ML Kit и Canvas не
-     * работят с "хардуерни" bitmap-и.
+     * Android 9+: ImageDecoder also reads HEIC/HEIF (Samsung photos) and rotates
+     * the image per EXIF by itself. Software bitmap - ML Kit and Canvas don't
+     * work with "hardware" bitmaps.
      */
     @RequiresApi(Build.VERSION_CODES.P)
     private fun decodeWithImageDecoder(context: Context, uri: Uri): Bitmap {
@@ -60,11 +60,11 @@ object ImageLoader {
         }
     }
 
-    /** Android 8: BitmapFactory + ръчно завъртане според EXIF. */
+    /** Android 8: BitmapFactory + manual rotation per EXIF. */
     private fun decodeWithBitmapFactory(context: Context, uri: Uri): Bitmap {
         val resolver = context.contentResolver
 
-        // Само размерите (inJustDecodeBounds) - decodeStream тогава винаги връща null, това е нормално.
+        // Dimensions only (inJustDecodeBounds) - decodeStream then always returns null, that's expected.
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         val stream = resolver.openInputStream(uri) ?: throw IOException("Cannot open $uri")
         stream.use { BitmapFactory.decodeStream(it, null, bounds) }
@@ -82,7 +82,7 @@ object ImageLoader {
         return rotate(decoded, rotation)
     }
 
-    /** Степен на 2, така че дългата страна да остане поне MAX_SIDE. */
+    /** A power of 2 such that the long side stays at least MAX_SIDE. */
     private fun sampleSize(width: Int, height: Int): Int {
         var sample = 1
         while (max(width, height) / (sample * 2) >= MAX_SIDE) sample *= 2
@@ -90,10 +90,10 @@ object ImageLoader {
     }
 
     /**
-     * Камерата снима целия сензор (4:3), а екранът показва изрязана част
-     * (FILL_CENTER). CameraX отбелязва показаната част в ImageProxy.cropRect,
-     * но toBitmap() не я прилага - изрязваме тук, за да остане на снимката
-     * само това, което е било на екрана. Старото копие се освобождава.
+     * The camera captures the full sensor (4:3), while the screen shows a cropped part
+     * (FILL_CENTER). CameraX records the visible part in ImageProxy.cropRect,
+     * but toBitmap() doesn't apply it - we crop here so the photo keeps only
+     * what was on screen. The old copy is recycled.
      */
     fun cropToPreview(bitmap: Bitmap, imageWidth: Int, imageHeight: Int, left: Int, top: Int, right: Int, bottom: Int): Bitmap {
         val bounds = cropBounds(bitmap.width, bitmap.height, imageWidth, imageHeight, left, top, right, bottom)
@@ -104,9 +104,9 @@ object ImageLoader {
     }
 
     /**
-     * Изрязването в пиксели на bitmap-а: [x, y, ширина, височина]; null - няма
-     * какво да се реже (cropRect е цялата снимка или е невалиден). cropRect е
-     * в размерите на кадъра от камерата, а bitmap-ът може да е с друг размер.
+     * The crop in bitmap pixels: [x, y, width, height]; null - nothing to crop
+     * (cropRect covers the whole image or is invalid). cropRect is in the
+     * camera frame's dimensions, while the bitmap may be a different size.
      */
     fun cropBounds(
         bitmapWidth: Int, bitmapHeight: Int, imageWidth: Int, imageHeight: Int,

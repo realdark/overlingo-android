@@ -14,14 +14,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Записва снимката с преводите в галерията или я подготвя за "Сподели". */
+/** Saves the photo with translations to the gallery or prepares it for "Share". */
 object ImageExporter {
 
     private const val JPEG_QUALITY = 92
 
     /**
-     * В галерията, в папка Pictures/Overlingo. На Android 10+ не иска разрешение;
-     * на Android 8-9 - WRITE_EXTERNAL_STORAGE (иска го екранът преди да извика това).
+     * To the gallery, in Pictures/Overlingo. On Android 10+ no permission is needed;
+     * on Android 8-9 - WRITE_EXTERNAL_STORAGE (the screen requests it before calling this).
      */
     fun saveToGallery(context: Context, image: Bitmap): Uri {
         val resolver = context.contentResolver
@@ -33,7 +33,7 @@ object ImageExporter {
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Overlingo")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             } else {
-                // Android 8-9 няма RELATIVE_PATH - пътят се задава директно (иначе отива в DCIM/Camera).
+                // Android 8-9 has no RELATIVE_PATH - the path is set directly (otherwise it lands in DCIM/Camera).
                 @Suppress("DEPRECATION")
                 val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Overlingo")
                 dir.mkdirs()
@@ -52,17 +52,17 @@ object ImageExporter {
                 resolver.update(uri, values, null, null)
             }
         } catch (e: Exception) {
-            resolver.delete(uri, null, null) // не оставяме празен файл в галерията
+            resolver.delete(uri, null, null) // don't leave an empty file in the gallery
             throw e
         }
         return uri
     }
 
-    /** Временен файл (в кеша на приложението) с адрес, който друго приложение може да прочете. */
+    /** A temporary file (in the app's cache) with a URI that another app can read. */
     fun shareableUri(context: Context, image: Bitmap): Uri {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-        // Ново име всеки път - предишното споделяне може още да се чете от другото приложение;
-        // по-старите файлове се трият, за да не се трупат.
+        // A new name each time - the previous share may still be read by the other app;
+        // older files are deleted so they don't pile up.
         dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 60 * 60 * 1000L }?.forEach { it.delete() }
         val file = File(dir, "overlingo-${System.currentTimeMillis()}.jpg")
         file.outputStream().use { image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }

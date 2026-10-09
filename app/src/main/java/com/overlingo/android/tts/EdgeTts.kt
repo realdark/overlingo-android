@@ -20,13 +20,13 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** Услугата на Microsoft отказа или не върна звук. */
+/** The Microsoft service refused or returned no audio. */
 class EdgeTtsException(message: String, val status: Int = 0) : IOException(message)
 
 /**
- * Гласовете на Microsoft (безплатни, без ключ, нужен е интернет) - като
- * edge-tts в десктоп версията. Всяка част от текста е отделна WebSocket
- * връзка, която връща MP3.
+ * Microsoft's voices (free, no key, internet required) - like
+ * edge-tts in the desktop version. Each part of the text is a separate
+ * WebSocket connection that returns MP3.
  */
 class EdgeTts(private val http: OkHttpClient) {
 
@@ -37,7 +37,7 @@ class EdgeTts(private val http: OkHttpClient) {
     private val voicesLock = Mutex()
     private var voices: List<EdgeVoice>? = null
 
-    /** Списъкът с гласове - сваля се веднъж (около 400 гласа) и се пази в паметта. */
+    /** The voice list - downloaded once (about 400 voices) and kept in memory. */
     suspend fun voices(): List<EdgeVoice> = voicesLock.withLock {
         voices ?: retryOnClockSkew { fetchVoices() }.also { voices = it }
     }
@@ -45,9 +45,9 @@ class EdgeTts(private val http: OkHttpClient) {
     suspend fun voiceFor(languageTag: String, gender: VoiceGender): EdgeVoice? =
         EdgeProtocol.pickVoice(voices(), languageTag, gender)
 
-    /** Синтезира една част от текста (до ~1200 знака) и връща MP3. */
+    /** Synthesizes one part of the text (up to ~1200 characters) and returns MP3. */
     suspend fun synthesize(text: String, voice: EdgeVoice, rate: Float): ByteArray = retryOnClockSkew {
-        // WebSocket няма собствен timeout за отговора - без това би чакал вечно.
+        // WebSocket has no response timeout of its own - without this it would wait forever.
         withTimeoutOrNull(TIMEOUT_MS) { synthesizeOnce(text, voice, rate) } ?: throw EdgeTtsException("timeout")
     }
 
@@ -113,7 +113,7 @@ class EdgeTts(private val http: OkHttpClient) {
             cont.invokeOnCancellation { socket.cancel() }
         }
 
-    /** 403 обикновено значи, че часовникът на телефона е разминат - оправяме и пробваме пак. */
+    /** A 403 usually means the phone's clock is off - we correct it and retry. */
     private suspend fun <T> retryOnClockSkew(block: suspend () -> T): T = try {
         block()
     } catch (e: EdgeTtsException) {

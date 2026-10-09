@@ -25,12 +25,12 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** Кой глас чете преводите. */
+/** Which voice reads the translations aloud. */
 enum class VoiceEngine(val key: String) {
-    /** Вграденият гласов синтез на телефона - по подразбиране, работи и без интернет. */
+    /** The phone's built-in speech synthesis - the default, works offline too. */
     PHONE("phone"),
 
-    /** Гласовете на Microsoft (Edge) - по-естествени, безплатни, но искат интернет. */
+    /** Microsoft (Edge) voices - more natural and free, but need internet. */
     MICROSOFT("microsoft");
 
     companion object {
@@ -39,22 +39,22 @@ enum class VoiceEngine(val key: String) {
 }
 
 /**
- * Четене на глас: вграденият в Android гласов синтез (TextToSpeech) или
- * гласовете на Microsoft. Ако Microsoft не е достъпен (няма интернет, няма
- * глас за езика), чете гласът на телефона и onEvent съобщава защо.
+ * Reading aloud: Android's built-in speech synthesis (TextToSpeech) or
+ * Microsoft's voices. If Microsoft is unavailable (no internet, no voice
+ * for the language), the phone's voice reads instead and onEvent reports why.
  */
 class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event) -> Unit) {
 
     enum class Result { STARTED, NOT_READY, MISSING_DATA, NOT_SUPPORTED, ERROR }
 
     sealed interface Event {
-        /** Microsoft няма глас за езика - чете телефонът. */
+        /** Microsoft has no voice for the language - the phone reads instead. */
         data object MicrosoftNoVoice : Event
 
-        /** Гласът на Microsoft не е достъпен (обикновено няма интернет) - чете телефонът. */
+        /** The Microsoft voice is unavailable (usually no internet) - the phone reads instead. */
         data class MicrosoftFailed(val detail: String) : Event
 
-        /** Резултатът от резервното четене с гласа на телефона, ако не е тръгнало. */
+        /** The result of the fallback reading with the phone's voice, if it failed to start. */
         data class PhoneResult(val result: Result) : Event
     }
 
@@ -68,7 +68,7 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
 
     private val _speakingText = MutableStateFlow<String?>(null)
 
-    /** Текстът, който се чете в момента (null - нищо не се чете). */
+    /** The text currently being read (null - nothing is being read). */
     val speakingText: StateFlow<String?> = _speakingText.asStateFlow()
 
     private val tts: TextToSpeech = TextToSpeech(appContext) { status ->
@@ -76,7 +76,7 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
     }
 
     init {
-        // Останали файлове от прекъснато четене (напр. затворено приложение).
+        // Leftover files from interrupted reading (e.g. the app was closed).
         appContext.cacheDir.listFiles { f -> f.name.startsWith("voice-") && f.name.endsWith(".mp3") }
             ?.forEach { it.delete() }
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -102,9 +102,9 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
     }
 
     /**
-     * languageTag - BCP-47 етикетът на езика ("bg", "zh-CN"), locale - същият
-     * за гласа на телефона. С MICROSOFT връща STARTED веднага, а звукът идва
-     * след малко (проблемите - през onEvent).
+     * languageTag - the language's BCP-47 tag ("bg", "zh-CN"), locale - the same
+     * for the phone's voice. With MICROSOFT it returns STARTED immediately and the
+     * audio follows shortly after (problems are reported via onEvent).
      */
     fun speak(
         text: String,
@@ -138,10 +138,10 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
     }
 
     // ------------------------------------------------------------------
-    // Гласът на телефона
+    // Phone voice
     // ------------------------------------------------------------------
 
-    /** shownAs - текстът за бутона "Спри" (при резервно четене на остатъка - целият текст). */
+    /** shownAs - the text for the "Stop" button (when falling back for the remainder - the full text). */
     private fun speakWithPhone(text: String, locale: Locale, rate: Float, shownAs: String = text): Result {
         if (!ready) return Result.NOT_READY
         when (tts.setLanguage(locale)) {
@@ -150,7 +150,7 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
         }
         tts.setSpeechRate(rate)
 
-        // Дълъг текст се разделя - движокът има ограничение за дължината на едно изречение за четене.
+        // Long text is split - the engine has a length limit for a single utterance.
         val chunks = splitText(text, TextToSpeech.getMaxSpeechInputLength() - 100)
         val batch = System.nanoTime()
         lastUtteranceId = "overlingo-$batch-${chunks.lastIndex}"
@@ -180,7 +180,7 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
     }
 
     // ------------------------------------------------------------------
-    // Гласовете на Microsoft
+    // Microsoft voices
     // ------------------------------------------------------------------
 
     private fun speakWithMicrosoft(text: String, languageTag: String, locale: Locale, rate: Float, gender: VoiceGender) {
@@ -199,13 +199,13 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Без интернет съобщението и без това го казва - технически детайл само за други грешки.
+                // When offline the message already says so - technical detail only for other errors.
                 val offline = e is java.net.UnknownHostException || e is java.net.ConnectException ||
                     e is java.net.SocketTimeoutException
                 Event.MicrosoftFailed(if (offline) "" else e.message ?: e.javaClass.simpleName)
             }
             if (fallback != null) {
-                // Не спираме на грешка - остатъкът се прочита с гласа на телефона.
+                // Don't stop on error - the remainder is read with the phone's voice.
                 onEvent(fallback)
                 val rest = parts.drop(played).joinToString(" ")
                 val result = speakWithPhone(rest, locale, rate, shownAs = text)
@@ -220,8 +220,8 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
     }
 
     /**
-     * Частите се синтезират една след друга, а следващата се сваля, докато
-     * текущата се чете - така четенето започва бързо и няма паузи.
+     * Parts are synthesized one after another, and the next one downloads while
+     * the current one plays - so playback starts quickly with no gaps.
      */
     private suspend fun playMicrosoft(parts: List<String>, voice: EdgeVoice, rate: Float, onPlayed: () -> Unit) =
         supervisorScope {
@@ -242,7 +242,7 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
                     onPlayed()
                 }
             } finally {
-                next?.cancel() // спряно или грешка - следващата част вече не трябва
+                next?.cancel() // stopped or failed - the next part is no longer needed
             }
         }
 
@@ -271,7 +271,7 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
             if (cont.isActive) cont.resumeWithException(EdgeTtsException("player error $what/$extra"))
             true
         }
-        cont.invokeOnCancellation { release() } // спиране - от главната нишка, както и пускането
+        cont.invokeOnCancellation { release() } // stopping happens on the main thread, same as starting
         try {
             player.setDataSource(file.path)
             player.prepare()

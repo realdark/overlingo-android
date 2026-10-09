@@ -14,8 +14,8 @@ import com.overlingo.android.ui.OverlingoApp
 import com.overlingo.android.ui.OverlingoTheme
 
 /**
- * Единствената Activity. AppCompatActivity (а не ComponentActivity) е нужна
- * само заради смяната на езика на интерфейса от настройките.
+ * The only Activity. AppCompatActivity (rather than ComponentActivity) is needed
+ * solely for switching the UI language from the settings.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -23,12 +23,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Интерфейсът винаги е тъмен - светли икони в лентите на системата.
+        // The UI is always dark - light icons in the system bars.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
-        // При завъртане/смяна на езика Activity-то се пресъздава - тогава не обработваме "Сподели" пак.
+        // On rotation/language change the Activity is recreated - don't handle "Share" again then.
         if (savedInstanceState == null) handleShare(intent)
         setContent {
             OverlingoTheme {
@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         handleShare(intent)
     }
 
-    /** "Сподели" -> Overlingo от друго приложение: снимка или текст. */
+    /** "Share" -> Overlingo from another app: an image or text. */
     private fun handleShare(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
         val type = intent.type ?: return

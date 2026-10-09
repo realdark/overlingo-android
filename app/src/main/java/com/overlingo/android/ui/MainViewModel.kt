@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit
 
 enum class Screen { CAMERA, RESULT, TEXT, SETTINGS }
 
-/** Съобщение към потребителя: текст от ресурсите + технически детайл (по желание). */
+/** Message to the user: text from resources + an (optional) technical detail. */
 data class UiMessage(@StringRes val res: Int, val detail: String = "")
 
 sealed interface Phase {
@@ -49,27 +49,27 @@ sealed interface Phase {
     data class Failed(val message: UiMessage) : Phase
 }
 
-/** Снимката, намерените блокове и техните преводи (null - още се превеждат). */
+/** The photo, the detected blocks and their translations (null - still being translated). */
 data class PhotoState(
     val bitmap: Bitmap,
     val blocks: List<TextBlock> = emptyList(),
     val translations: List<String>? = null,
     val phase: Phase = Phase.Recognizing,
     val showOriginal: Boolean = false,
-    /** Дали разпознаването е минало - тогава при смяна на езика само превеждаме наново. */
+    /** Whether recognition is done - then on a language change we only re-translate. */
     val recognized: Boolean = false,
-    /** На какъв език е преводът - при смяна превеждаме наново (без ново OCR). */
+    /** The language of the translation - on change we re-translate (without a new OCR). */
     val translatedTo: String = "",
     val translatedWith: String = "",
-    /** Скрити прозорци с превод (по номер на блок) - не се рисуват, четат и запазват. */
+    /** Hidden translation windows (by block index) - not drawn, read aloud or saved. */
     val hidden: Set<Int> = emptySet(),
 ) {
-    /** Преводите без скритите (на тяхно място "" - пропускат се навсякъде). */
+    /** The translations without the hidden ones ("" in their place - skipped everywhere). */
     val visibleTranslations: List<String>?
         get() = withoutHidden(translations, hidden)
 }
 
-/** Преводите, в които скритите блокове са заменени с "" (празният превод не се рисува, чете и запазва). */
+/** The translations with hidden blocks replaced by "" (an empty translation isn't drawn, read aloud or saved). */
 fun withoutHidden(translations: List<String>?, hidden: Set<Int>): List<String>? =
     if (hidden.isEmpty()) translations
     else translations?.mapIndexed { index, text -> if (index in hidden) "" else text }
@@ -90,9 +90,9 @@ data class UiState(
     val text: TextState = TextState(),
     val toast: UiMessage? = null,
     val ttsProblem: TtsProblem? = null,
-    /** Свалените модели за офлайн превод (кодове на ML Kit) - за Настройки. */
+    /** Downloaded offline translation models (ML Kit codes) - for Settings. */
     val offlineModels: Set<String> = emptySet(),
-    /** Готова за споделяне снимка с преводите - UI отваря менюто "Сподели" и я нулира. */
+    /** Photo with translations ready to share - the UI opens the "Share" sheet and clears it. */
     val shareUri: Uri? = null,
     val exporting: Boolean = false,
 )
@@ -118,7 +118,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val speakingText: StateFlow<String?> = speaker.speakingText
 
-    /** Езикът (код на ML Kit), чийто модел за офлайн превод се сваля в момента. */
+    /** The language (ML Kit code) whose offline translation model is currently downloading. */
     val offlineDownloading: StateFlow<String?> = offline.downloading
 
     private var photoJob: Job? = null
@@ -126,14 +126,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var settingsJob: Job? = null
 
     // ------------------------------------------------------------------
-    // Снимки
+    // Photos
     // ------------------------------------------------------------------
 
-    /** Вика се от нишката на камерата - завъртането и смаляването стават във фонов режим. */
+    /** Called from the camera thread - rotation and downscaling happen in the background. */
     fun onCameraPhoto(raw: Bitmap, rotationDegrees: Int) {
         viewModelScope.launch {
             val bitmap = withContext(Dispatchers.Default) { ImageLoader.fromCamera(raw, rotationDegrees) }
-            // Ако междувременно потребителят е отворил Настройки или "Aa", не го дърпаме оттам.
+            // If the user has meanwhile opened Settings or "Aa", don't pull them away from there.
             if (_state.value.screen == Screen.CAMERA) startPhoto(bitmap)
         }
     }
@@ -157,7 +157,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         photoJob = viewModelScope.launch { runPhotoPipeline(reuseBlocks = false) }
     }
 
-    /** Разпознава (ако трябва) и превежда текущата снимка. */
+    /** Recognizes (if needed) and translates the current photo. */
     private suspend fun runPhotoPipeline(reuseBlocks: Boolean) {
         val photo = _state.value.photo ?: return
         val settings = repository.settings.first()
@@ -176,8 +176,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             updatePhoto { it.copy(phase = Phase.Translating, translations = null) }
-            // Абзаците се превеждат поотделно (иначе празният ред между тях се губи)
-            // и после се събират обратно по прозорци.
+            // Paragraphs are translated separately (otherwise the blank line between them is lost)
+            // and then regrouped back into windows.
             val outcome = engine.translate(blocks.flatMap { it.paragraphTexts }, settings)
             val translated = outcome.translations.iterator()
             val perBlock = blocks.map { block ->
@@ -206,12 +206,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleOriginal() = updatePhoto { it.copy(showOriginal = !it.showOriginal) }
 
-    /** Скрива прозореца с превода от снимката (или го показва отново). */
+    /** Hides the translation window from the photo (or shows it again). */
     fun toggleHidden(index: Int) = updatePhoto {
         it.copy(hidden = if (index in it.hidden) it.hidden - index else it.hidden + index)
     }
 
-    /** Показва отново всички скрити прозорци. */
+    /** Shows all hidden windows again. */
     fun showAllHidden() = updatePhoto { it.copy(hidden = emptySet()) }
 
     fun backToCamera() {
@@ -225,7 +225,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ------------------------------------------------------------------
-    // Превод на текст (бутон "Aa" и "Сподели" с текст)
+    // Text translation ("Aa" button and "Share" with text)
     // ------------------------------------------------------------------
 
     fun openTextScreen(initial: String? = null) {
@@ -259,7 +259,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ------------------------------------------------------------------
-    // Навигация
+    // Navigation
     // ------------------------------------------------------------------
 
     fun openSettings() = _state.update { it.copy(screen = Screen.SETTINGS, previous = it.screen) }
@@ -280,10 +280,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** След промяна на настройките: превежда наново, ако е сменен езикът или услугата. */
+    /** After a settings change: re-translates if the language or the service changed. */
     private fun refreshAfterSettings() {
         viewModelScope.launch {
-            settingsJob?.join() // последната промяна (напр. току-що избран DeepL) трябва да е записана
+            settingsJob?.join() // the last change (e.g. DeepL just selected) must be saved first
             val settings = repository.settings.first()
             val photo = _state.value.photo
             val screen = _state.value.screen
@@ -297,18 +297,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ------------------------------------------------------------------
-    // Настройки
+    // Settings
     // ------------------------------------------------------------------
 
     fun updateSettings(transform: (AppSettings) -> AppSettings) {
         val previous = settingsJob
         settingsJob = viewModelScope.launch {
-            previous?.join() // записите - един след друг, в реда на промените
+            previous?.join() // writes happen one after another, in the order of the changes
             repository.update(transform)
         }
     }
 
-    /** Смяна на целевия език (от чипа горе) - преводът се обновява веднага. */
+    /** Change of target language (from the chip at the top) - the translation updates immediately. */
     fun setTargetLanguage(code: String) {
         viewModelScope.launch {
             repository.update { it.copy(targetLang = code) }
@@ -320,7 +320,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Свалените модели за офлайн превод - обновява се при отваряне на Настройки. */
+    /** Downloaded offline translation models - refreshed when Settings is opened. */
     fun refreshOfflineModels() {
         viewModelScope.launch {
             val models = try {
@@ -348,10 +348,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ------------------------------------------------------------------
-    // Запазване / споделяне на снимката с преводите
+    // Saving / sharing the photo with translations
     // ------------------------------------------------------------------
 
-    /** share = true: подготвя файл за "Сподели"; false: записва в галерията. */
+    /** share = true: prepares a file for "Share"; false: saves to the gallery. */
     fun exportPhoto(share: Boolean) {
         val photo = _state.value.photo ?: return
         if (_state.value.exporting) return
@@ -378,7 +378,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 showToast(UiMessage(R.string.error_save_image, e.message.orEmpty()))
             } finally {
-                // Копието с преводите вече е записано - освобождаваме го (снимката на екрана остава).
+                // The copy with translations is already written - free it (the on-screen photo stays).
                 image?.takeIf { it !== photo.bitmap }?.recycle()
                 _state.update { it.copy(exporting = false) }
             }
@@ -388,7 +388,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun consumeShareUri() = _state.update { it.copy(shareUri = null) }
 
     // ------------------------------------------------------------------
-    // Глас
+    // Voice
     // ------------------------------------------------------------------
 
     fun toggleSpeak(text: String) {
@@ -412,7 +412,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Гласът на Microsoft не е проработил - чете телефонът; казваме защо. */
+    /** The Microsoft voice didn't work - the phone reads instead; we tell the user why. */
     private fun onSpeakerEvent(event: Speaker.Event) {
         when (event) {
             Speaker.Event.MicrosoftNoVoice -> showToast(UiMessage(R.string.tts_ms_no_voice))
@@ -424,7 +424,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun dismissTtsProblem() = _state.update { it.copy(ttsProblem = null) }
 
     // ------------------------------------------------------------------
-    // Съобщения
+    // Messages
     // ------------------------------------------------------------------
 
     fun showToast(message: UiMessage) = _state.update { it.copy(toast = message) }

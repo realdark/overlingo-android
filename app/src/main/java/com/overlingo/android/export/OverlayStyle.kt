@@ -4,11 +4,11 @@ import com.overlingo.android.data.AppSettings
 import kotlin.math.roundToInt
 
 /**
- * Как изглеждат прозорците с превод - общо за екрана и за запазената снимка.
- * Цветовете са ARGB (Int), за да се ползват и от Compose, и от android.graphics.
+ * How the translation boxes look - shared by the screen and the saved photo.
+ * Colors are ARGB (Int) so they can be used by both Compose and android.graphics.
  */
 data class OverlayStyle(
-    /** Множител върху автоматично вписания размер на текста (0.7 - 1.5). */
+    /** Multiplier applied to the auto-fitted text size (0.7 - 1.5). */
     val textScale: Float = 1.0f,
     val background: Int = argb(0.9f, DARK),
     val text: Int = WHITE,
@@ -21,10 +21,10 @@ data class OverlayStyle(
         private const val NEAR_BLACK = 0xFF111827.toInt()
         private const val OUTLINE = 0xCC3B82F6.toInt()
 
-        /** Минимален размер на шрифта (px) при вписването. */
+        /** Minimum font size (px) when fitting. */
         const val MIN_FONT_PX = 4f
 
-        /** Междуредие (спрямо размера на шрифта). */
+        /** Line spacing (relative to the font size). */
         const val LINE_SPACING = 1.15f
 
         fun from(settings: AppSettings) = OverlayStyle(

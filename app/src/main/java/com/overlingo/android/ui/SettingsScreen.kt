@@ -115,7 +115,7 @@ fun SettingsScreen(
 }
 
 // ----------------------------------------------------------------------
-// Превод
+// Translation
 // ----------------------------------------------------------------------
 
 @Composable
@@ -193,7 +193,7 @@ private fun TranslationSection(settings: AppSettings, onUpdate: ((AppSettings) -
     }
 }
 
-/** Свалените модели за офлайн превод - с възможност за изтриване (всеки е ~30 MB). */
+/** Downloaded offline translation models - with the option to delete them (each is ~30 MB). */
 @Composable
 private fun OfflineModels(models: Set<String>, onDelete: (String) -> Unit) {
     if (models.isEmpty()) return
@@ -208,7 +208,7 @@ private fun OfflineModels(models: Set<String>, onDelete: (String) -> Unit) {
         .forEach { (code, name) ->
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(name, modifier = Modifier.weight(1f))
-                // Английският е вграден в ML Kit и не може да се изтрие.
+                // English is built into ML Kit and can't be deleted.
                 if (code != "en") {
                     IconButton(onClick = { onDelete(code) }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.offline_model_delete))
@@ -219,7 +219,7 @@ private fun OfflineModels(models: Set<String>, onDelete: (String) -> Unit) {
 }
 
 // ----------------------------------------------------------------------
-// Прозорци с превод
+// Translation windows
 // ----------------------------------------------------------------------
 
 @Composable
@@ -256,7 +256,7 @@ private fun OverlaySection(settings: AppSettings, onUpdate: ((AppSettings) -> Ap
 }
 
 // ----------------------------------------------------------------------
-// Глас
+// Voice
 // ----------------------------------------------------------------------
 
 @Composable
@@ -310,7 +310,7 @@ private fun VoiceSection(settings: AppSettings, onUpdate: ((AppSettings) -> AppS
     if (settings.voiceEngine == VoiceEngine.PHONE) {
         Hint(stringResource(R.string.voice_hint))
     }
-    // Гласът на телефона е и резервата за Microsoft (без интернет) - бутонът остава винаги.
+    // The phone's voice is also the fallback for Microsoft (no internet) - the button always stays.
     OutlinedButton(
         onClick = {
             openActivity(context, Intent("com.android.settings.TTS_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -322,7 +322,7 @@ private fun VoiceSection(settings: AppSettings, onUpdate: ((AppSettings) -> AppS
 }
 
 // ----------------------------------------------------------------------
-// Интерфейс
+// Interface
 // ----------------------------------------------------------------------
 
 @Composable
@@ -344,7 +344,7 @@ private fun InterfaceSection() {
                     selected = selected,
                     role = Role.RadioButton,
                     onClick = {
-                        // Смяната на езика пресъздава екрана - състоянието се пази във ViewModel-а.
+                        // Changing the language recreates the screen - the state is kept in the ViewModel.
                         val locales = if (tag.isEmpty()) LocaleListCompat.getEmptyLocaleList()
                         else LocaleListCompat.forLanguageTags(tag)
                         AppCompatDelegate.setApplicationLocales(locales)
@@ -359,7 +359,7 @@ private fun InterfaceSection() {
 }
 
 // ----------------------------------------------------------------------
-// Общи елементи
+// Common elements
 // ----------------------------------------------------------------------
 
 @Composable
@@ -431,8 +431,8 @@ private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChang
 }
 
 /**
- * Текстово поле с локално състояние: пише се веднага, а записът в
- * настройките става на заден план (иначе курсорът "скача" при бързо писане).
+ * Text field with local state: typing is applied immediately, while saving to
+ * the settings happens in the background (otherwise the cursor "jumps" when typing fast).
  */
 @Composable
 private fun PlainField(

@@ -10,7 +10,7 @@ class OverlayStyleTest {
     fun darkByDefault() {
         val style = OverlayStyle.from(AppSettings())
         assertEquals(0xFFFFFFFF.toInt(), style.text)
-        assertEquals(0xE6, style.background ushr 24) // 90% плътност
+        assertEquals(0xE6, style.background ushr 24) // 90% opacity
         assertEquals(0x111827, style.background and 0xFFFFFF)
     }
 

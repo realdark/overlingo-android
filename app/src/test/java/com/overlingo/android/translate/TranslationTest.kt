@@ -83,7 +83,7 @@ class CacheTest {
     }
 }
 
-/** Преводач за тестове: записва какво е поискано и връща "[код] текст" или хвърля грешка. */
+/** Test translator: records what was requested and returns "[code] text" or throws an error. */
 private class FakeTranslator(private val error: Exception? = null) : Translator {
     val calls = mutableListOf<List<String>>()
     override suspend fun translate(texts: List<String>, target: Language): List<String> {
@@ -164,7 +164,7 @@ class EngineTest {
         val e = engine(primary, offline = FakeTranslator())
         e.translate(listOf("Exit"), AppSettings())
         e.translate(listOf("Exit"), AppSettings())
-        assertEquals(2, primary.calls.size) // при втория опит пак пробва онлайн услугата
+        assertEquals(2, primary.calls.size) // the second attempt tries the online service again
     }
 
     @Test
@@ -206,7 +206,7 @@ class EngineTest {
     }
 }
 
-/** Google без мрежа: отговаря по зададено правило и брои заявките. */
+/** Google without a network: answers by a given rule and counts the requests. */
 private class FakeGoogle(private val answer: (String) -> String) : GoogleTranslator(OkHttpClient()) {
     val requests = mutableListOf<String>()
     override suspend fun translateOne(text: String, target: Language): String {
@@ -235,14 +235,14 @@ class GoogleBatchTest {
 
     @Test
     fun mismatchSplitsInHalvesInsteadOfOneRequestPerBlock() = runBlocking {
-        // Google слива редовете, щом в заявката има повече от 2 блока.
+        // Google merges the lines whenever the request has more than 2 blocks.
         val google = FakeGoogle { text ->
             val lines = text.split('\n')
             if (lines.size > 2) lines.joinToString(" ") else text.uppercase()
         }
         val texts = (1..8).map { "t$it" }
         assertEquals(texts.map { it.uppercase() }, google.translate(texts, target))
-        // 1 (всички) + 2 (по 4) + 4 (по 2) = 7 заявки, вместо 8 отделни след неуспеха.
+        // 1 (all) + 2 (4 each) + 4 (2 each) = 7 requests, instead of 8 separate ones after the mismatch.
         assertEquals(7, google.requests.size)
     }
 

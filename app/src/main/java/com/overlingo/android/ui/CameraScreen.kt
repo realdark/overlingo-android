@@ -114,7 +114,7 @@ fun CameraScreen(
             )
         }
 
-        // Горна лента: целеви език, превод на текст, настройки
+        // Top bar: target language, text translation, settings
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -146,20 +146,20 @@ private fun CameraPreviewWithControls(
     val controller = remember {
         LifecycleCameraController(context).apply {
             setEnabledUseCases(CameraController.IMAGE_CAPTURE)
-            // ~12 MP: екранът показва само средата на кадъра (виж ImageLoader.cropToPreview),
-            // така че след изрязването остават ~7 MP - дребният текст още е достатъчно ясен
-            // за ML Kit. По-големи (48-200 MP) снимки биха заели стотици MB памет без полза.
+            // ~12 MP: the screen shows only the middle of the frame (see ImageLoader.cropToPreview),
+            // so ~7 MP remain after cropping - small text is still clear enough
+            // for ML Kit. Larger (48-200 MP) photos would take hundreds of MB of memory for no gain.
             imageCaptureResolutionSelector = ResolutionSelector.Builder()
                 .setResolutionStrategy(
                     ResolutionStrategy(Size(4032, 3024), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER)
                 )
                 .build()
-            // По подразбиране камерата бърза (по-шумна, по-размазана снимка); за текст
-            // качеството е по-важно от половин секунда.
+            // By default the camera favors speed (noisier, blurrier photo); for text,
+            // quality matters more than half a second.
             imageCaptureMode = ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
         }
     }
-    // Отделна нишка за декодирането на снимката - да не блокира интерфейса.
+    // Separate thread for decoding the photo - so it doesn't block the UI.
     val executor = remember { Executors.newSingleThreadExecutor() }
     DisposableEffect(lifecycleOwner) {
         controller.bindToLifecycle(lifecycleOwner)
@@ -169,10 +169,10 @@ private fun CameraPreviewWithControls(
         onDispose { executor.shutdown() }
     }
 
-    // Камерата завърта снимката според сензора за ориентация. Когато телефонът
-    // лежи почти хоризонтално (снимаш лист на масата), сензорът не може да
-    // определи ориентацията и остава старата - снимката излизаше легнала.
-    // Затова следим кога телефонът е "легнал" и тогава завъртаме като екрана.
+    // The camera rotates the photo based on the orientation sensor. When the phone
+    // lies almost flat (shooting a sheet on a table), the sensor can't
+    // determine the orientation and keeps the old one - the photo came out sideways.
+    // So we track when the phone is "lying flat" and then rotate to match the screen.
     val deviceFlat = remember { AtomicBoolean(false) }
     DisposableEffect(Unit) {
         val listener = object : OrientationEventListener(context) {
@@ -187,8 +187,8 @@ private fun CameraPreviewWithControls(
 
     var capturing by remember { mutableStateOf(false) }
     var torch by remember { mutableStateOf(false) }
-    // Когато приложението отиде във фонов режим, камерата (и фенерчето) се изключват -
-    // иконата трябва да го показва, иначе след връщане "свети", а фенерчето е угаснало.
+    // When the app goes to the background, the camera (and the torch) turn off -
+    // the icon must reflect that, otherwise after returning it shows "on" while the torch is off.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) torch = false
@@ -198,7 +198,7 @@ private fun CameraPreviewWithControls(
     }
 
     Box(Modifier.fillMaxSize()) {
-        // Докосване = фокус, два пръста = приближаване (вградено в PreviewView + controller).
+        // Tap = focus, two fingers = zoom (built into PreviewView + controller).
         AndroidView(
             factory = { ctx ->
                 PreviewView(ctx).apply {
@@ -222,7 +222,7 @@ private fun CameraPreviewWithControls(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         )
 
-        // Долна лента: галерия - снимай - фенерче
+        // Bottom bar: gallery - shutter - torch
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
@@ -239,7 +239,7 @@ private fun CameraPreviewWithControls(
             ShutterButton(busy = capturing) {
                 if (capturing) return@ShutterButton
                 capturing = true
-                // Завъртане "като на екрана": спрямо текущото завъртане на дисплея.
+                // Rotation "as on screen": relative to the display's current rotation.
                 val screenRotation = controller.cameraInfo
                     ?.getSensorRotationDegrees(view.display?.rotation ?: Surface.ROTATION_0)
                 val callback = object : ImageCapture.OnImageCapturedCallback() {
@@ -250,7 +250,7 @@ private fun CameraPreviewWithControls(
                             image.imageInfo.rotationDegrees
                         }
                         val bitmap = try {
-                            // Само показаното на екрана (виж ImageLoader.cropToPreview).
+                            // Only what's shown on screen (see ImageLoader.cropToPreview).
                             val crop = image.cropRect
                             ImageLoader.cropToPreview(
                                 image.toBitmap(), image.width, image.height,
@@ -275,7 +275,7 @@ private fun CameraPreviewWithControls(
                 try {
                     controller.takePicture(executor, callback)
                 } catch (e: IllegalStateException) {
-                    // Камерата още не е готова (или я няма) - вместо срив, съобщение.
+                    // The camera isn't ready yet (or there is none) - show a message instead of crashing.
                     capturing = false
                     onError(UiMessage(R.string.error_capture, e.message.orEmpty()))
                 }

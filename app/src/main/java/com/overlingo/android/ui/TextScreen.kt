@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.overlingo.android.R
 import com.overlingo.android.data.Language
 
-/** Превод на написан/поставен текст - като прозореца "Aa" на десктопа. */
+/** Translation of typed/pasted text - like the "Aa" window on desktop. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextScreen(

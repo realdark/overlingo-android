@@ -3,10 +3,10 @@ package com.overlingo.android.data
 import java.util.Locale
 
 /**
- * Един език и кодовете му за различните услуги.
+ * A language and its codes for the various services.
  *
- * code  - както в десктоп версията ("BG", "EN"...), пази се в настройките
- * tag   - BCP-47 етикет: име на езика и глас за четене ("bg", "zh-CN")
+ * code  - as in the desktop version ("BG", "EN"...), stored in the settings
+ * tag   - BCP-47 tag: language name and text-to-speech voice ("bg", "zh-CN")
  */
 data class Language(
     val code: String,
@@ -17,7 +17,7 @@ data class Language(
 ) {
     val locale: Locale get() = Locale.forLanguageTag(tag)
 
-    /** Името на езика на езика на интерфейса, напр. "Немски" / "German". */
+    /** The language's name in the UI language, e.g. "German" / "Allemand" (French UI). */
     fun displayName(uiLocale: Locale): String =
         locale.getDisplayName(uiLocale).replaceFirstChar { if (it.isLowerCase()) it.titlecase(uiLocale) else it.toString() }
 }
@@ -63,7 +63,7 @@ object Languages {
 
     fun byCode(code: String?): Language? = all.firstOrNull { it.code.equals(code, ignoreCase = true) }
 
-    /** Целеви език по подразбиране: езикът на телефона, ако го има в списъка, иначе английски. */
+    /** Default target language: the phone's language if it is in the list, otherwise English. */
     fun defaultTarget(): Language {
         val system = Locale.getDefault().language
         return all.firstOrNull { it.locale.language == system } ?: byCode("EN")!!

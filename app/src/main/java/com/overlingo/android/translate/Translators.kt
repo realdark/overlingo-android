@@ -12,7 +12,7 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-/** Грешка при превод, вече разпозната - за да покажем ясно съобщение на езика на интерфейса. */
+/** An already classified translation error, so we can show a clear message in the UI language. */
 class TranslationException(val kind: Kind, detail: String = "", cause: Throwable? = null) :
     Exception(detail, cause) {
     enum class Kind {
@@ -21,17 +21,17 @@ class TranslationException(val kind: Kind, detail: String = "", cause: Throwable
     }
 }
 
-/** Всички преводачи превеждат наведнъж списък от текстове (блоковете от снимката). */
+/** Every translator translates a list of texts at once (the blocks from the photo). */
 interface Translator {
     suspend fun translate(texts: List<String>, target: Language): List<String>
 }
 
 private val JSON = "application/json; charset=utf-8".toMediaType()
 
-/** Превръща мрежова/HTTP грешка в TranslationException. */
+/** Converts a network/HTTP error into a TranslationException. */
 internal fun mapError(e: Exception, service: String): TranslationException = when (e) {
     is TranslationException -> e
-    // Няма мрежа, или Wi-Fi без интернет (връзката не се осъществява / не отговаря).
+    // No network, or Wi-Fi without internet (the connection can't be made / doesn't respond).
     is UnknownHostException, is ConnectException, is SocketTimeoutException ->
         TranslationException(TranslationException.Kind.NO_INTERNET, service, e)
     is HttpStatusException -> when (e.code) {
@@ -43,9 +43,9 @@ internal fun mapError(e: Exception, service: String): TranslationException = whe
 }
 
 /**
- * Google Translate (безплатният уеб адрес, както в десктоп версията).
- * Блоковете се пращат заедно, по един на ред, в една заявка; ако Google
- * върне различен брой редове, превеждаме ги поотделно.
+ * Google Translate (the free web endpoint, same as in the desktop version).
+ * Blocks are sent together, one per line, in a single request; if Google
+ * returns a different number of lines, we translate them separately.
  */
 open class GoogleTranslator(private val http: OkHttpClient) : Translator {
 
@@ -61,9 +61,9 @@ open class GoogleTranslator(private val http: OkHttpClient) : Translator {
     }
 
     /**
-     * Праща група блокове в една заявка (по един на ред). Ако Google върне
-     * различен брой редове, групата се дели на две и се опитва пак - така
-     * заявките остават малко (иначе при много блокове Google връща 429).
+     * Sends a group of blocks in one request (one per line). If Google returns
+     * a different number of lines, the group is split in two and retried - this
+     * keeps the request count low (otherwise, with many blocks, Google returns 429).
      */
     private suspend fun translateGroup(texts: List<String>, group: List<Int>, target: Language, result: MutableList<String>) {
         if (group.size == 1) {
@@ -80,7 +80,7 @@ open class GoogleTranslator(private val http: OkHttpClient) : Translator {
         }
     }
 
-    /** Една заявка към Google (open - за тестовете). */
+    /** A single request to Google (open - for the tests). */
     internal open suspend fun translateOne(text: String, target: Language): String {
         val url = "https://translate.googleapis.com/translate_a/single".toHttpUrl().newBuilder()
             .addQueryParameter("client", "gtx")
@@ -101,7 +101,7 @@ open class GoogleTranslator(private val http: OkHttpClient) : Translator {
 
         private fun flatten(text: String) = text.replace('\n', ' ').trim()
 
-        /** Отговорът е [[["превод","оригинал",...], ...], ...] - слепваме преводите на изреченията. */
+        /** The response is [[["translation","original",...], ...], ...] - we join the sentence translations. */
         fun parseResponse(json: String): String {
             val segments = JSONArray(json).optJSONArray(0) ?: return ""
             val sb = StringBuilder()
@@ -112,7 +112,7 @@ open class GoogleTranslator(private val http: OkHttpClient) : Translator {
             return sb.toString()
         }
 
-        /** Групира поредни индекси така, че общата дължина да не надхвърля maxChars (дълъг текст остава сам). */
+        /** Groups consecutive indices so the total length doesn't exceed maxChars (a long text stays on its own). */
         fun chunkIndices(texts: List<String>, maxChars: Int): List<List<Int>> {
             val chunks = mutableListOf<MutableList<Int>>()
             var length = 0
@@ -131,7 +131,7 @@ open class GoogleTranslator(private val http: OkHttpClient) : Translator {
     }
 }
 
-/** DeepL REST API - приема до 50 текста в една заявка. Ключ, завършващ на ":fx", е безплатен план. */
+/** DeepL REST API - accepts up to 50 texts per request. A key ending in ":fx" is the free plan. */
 class DeepLTranslator(private val http: OkHttpClient, private val apiKey: String) : Translator {
 
     override suspend fun translate(texts: List<String>, target: Language): List<String> {
@@ -164,7 +164,7 @@ class DeepLTranslator(private val http: OkHttpClient, private val apiKey: String
     }
 }
 
-/** Microsoft Translator - до 100 текста в заявка. Регионът е нужен само за регионални Azure ресурси. */
+/** Microsoft Translator - up to 100 texts per request. The region is only needed for regional Azure resources. */
 class MicrosoftTranslator(
     private val http: OkHttpClient,
     private val apiKey: String,

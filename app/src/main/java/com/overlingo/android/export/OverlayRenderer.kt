@@ -11,13 +11,13 @@ import com.overlingo.android.ocr.TextBlock
 import kotlin.math.max
 
 /**
- * Рисува преводите върху самата снимка (за "Запази" и "Сподели") - същите
- * прозорци като на екрана: тъмен/светъл правоъгълник върху оригиналния
- * текст и преводът, вписан в него.
+ * Draws the translations onto the photo itself (for "Save" and "Share") - the same
+ * boxes as on screen: a dark/light rectangle over the original text
+ * with the translation fitted inside it.
  */
 object OverlayRenderer {
 
-    /** translations = null: само снимката (когато на екрана е показан оригиналът). */
+    /** translations = null: just the photo (when the screen shows the original). */
     fun render(photo: Bitmap, blocks: List<TextBlock>, translations: List<String>?, style: OverlayStyle): Bitmap {
         if (translations == null) return photo
         val result = photo.copy(Bitmap.Config.ARGB_8888, true)
@@ -36,7 +36,7 @@ object OverlayRenderer {
 
             paint.textSize = fitFontSize(text, paint, innerWidth, rect.height(), block.lineHeight * 1.1f) * style.textScale
             val layout = layout(text, paint, innerWidth)
-            // Ако текстът не се събира, прозорецът се удължава надолу (както на екрана).
+            // If the text doesn't fit, the box is extended downwards (same as on screen).
             if (layout.height > rect.height()) rect.bottom = rect.top + layout.height + pad
 
             canvas.drawRoundRect(rect, pad * 0.75f, pad * 0.75f, background)
@@ -48,7 +48,7 @@ object OverlayRenderer {
         return result
     }
 
-    /** Най-големият шрифт (двоично търсене), с който текстът се събира в правоъгълника. */
+    /** The largest font size (binary search) at which the text fits in the rectangle. */
     private fun fitFontSize(text: String, paint: TextPaint, width: Int, height: Float, maxPx: Float): Float {
         var low = OverlayStyle.MIN_FONT_PX
         var high = max(low, maxPx)

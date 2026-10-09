@@ -33,21 +33,21 @@ data class AppSettings(
     val microsoftRegion: String = "",
     val fallback: Boolean = true,
     val speechRate: Float = 1.0f,
-    /** Кой глас чете: на телефона (по подразбиране) или на Microsoft. */
+    /** Which voice reads aloud: the phone's (default) or Microsoft's. */
     val voiceEngine: VoiceEngine = VoiceEngine.PHONE,
     val voiceGender: VoiceGender = VoiceGender.FEMALE,
-    /** Прозорците с превод върху снимката. */
+    /** The translation boxes over the photo. */
     val overlayTextScale: Float = 1.0f,
     val overlayOpacity: Float = 0.9f,
     val overlayLight: Boolean = false,
 ) {
-    /** Празно = още не е избран -> езикът на телефона (или английски). */
+    /** Empty = not chosen yet -> the phone's language (or English). */
     val target: Language get() = Languages.byCode(targetLang) ?: Languages.defaultTarget()
 }
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-/** Настройките се пазят в DataStore (файл в личната папка на приложението). */
+/** Settings are stored in DataStore (a file in the app's private directory). */
 class SettingsRepository(context: Context) {
 
     private val store = context.applicationContext.dataStore

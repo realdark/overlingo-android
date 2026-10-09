@@ -11,16 +11,16 @@ import kotlinx.coroutines.tasks.await
 class OcrException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /**
- * Разпознаване на текст с Google ML Kit (латиница). Моделът е вграден в
- * APK-то и работи без интернет. ML Kit сам намира блоковете (абзаци,
- * заглавия, табели) и редовете в тях, включително при наклонена или
- * леко извита снимка.
+ * Text recognition with Google ML Kit (Latin script). The model is bundled in
+ * the APK and works without internet. ML Kit itself finds the blocks (paragraphs,
+ * headings, signs) and the lines within them, even when the photo is tilted or
+ * slightly curved.
  */
 class OcrEngine {
 
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
-    /** Bitmap-ът трябва вече да е изправен (виж ImageLoader). Координатите са в неговите пиксели. */
+    /** The bitmap must already be upright (see ImageLoader). Coordinates are in its pixels. */
     suspend fun recognize(bitmap: Bitmap): List<TextBlock> {
         val result = try {
             recognizer.process(InputImage.fromBitmap(bitmap, 0)).await()

@@ -5,7 +5,7 @@ import org.junit.Test
 
 class BlockCleanerTest {
 
-    /** Блок от редове; всеки ред - думи с височина h, започващ от (x, y). */
+    /** A block of lines; each line is words of height h, starting at (x, y). */
     private fun block(x: Int, y: Int, vararg lines: String, h: Int = 20): TextBlock =
         TextBlock.of(lines.mapIndexed { i, text ->
             var cursor = x
@@ -51,7 +51,7 @@ class BlockCleanerTest {
 
     @Test
     fun paragraphsOfOneTextBecomeOneBlock() {
-        // Два абзаца един под друг в една колона, с малко разстояние - един прозорец.
+        // Two paragraphs stacked in one column with a small gap - one box.
         val first = block(10, 10, "First paragraph line one", "and line two of it.")
         val second = block(10, 10 + 52 + 14, "Second paragraph starts", "here and ends.")
         val result = BlockCleaner.clean(listOf(first, second))

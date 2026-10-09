@@ -8,7 +8,7 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
 
-/** Глас на Microsoft, напр. ShortName "bg-BG-KalinaNeural", Locale "bg-BG", Gender "Female". */
+/** A Microsoft voice, e.g. ShortName "bg-BG-KalinaNeural", Locale "bg-BG", Gender "Female". */
 data class EdgeVoice(val shortName: String, val locale: String, val gender: String)
 
 enum class VoiceGender(val key: String, val edgeName: String) {
@@ -20,10 +20,10 @@ enum class VoiceGender(val key: String, val edgeName: String) {
 }
 
 /**
- * Протоколът на безплатните гласове на Microsoft (същите, които ползва
- * "Четене на глас" в Edge и библиотеката edge-tts в десктоп версията).
- * Тук е само чистата логика - без мрежа, за да се тества лесно.
- * Константите следват edge-tts (github.com/rany2/edge-tts, constants.py / drm.py).
+ * The protocol of Microsoft's free voices (the same ones used by Edge's
+ * "Read aloud" and by the edge-tts library in the desktop version).
+ * Only the pure logic lives here - no networking, so it is easy to test.
+ * The constants follow edge-tts (github.com/rany2/edge-tts, constants.py / drm.py).
  */
 object EdgeProtocol {
     const val TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
@@ -37,7 +37,7 @@ object EdgeProtocol {
         "Chrome/$CHROMIUM_MAJOR.0.0.0 Safari/537.36 Edg/$CHROMIUM_MAJOR.0.0.0"
     const val ORIGIN = "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold"
 
-    /** Разликата между часовника на телефона и сървъра (оправя се при 403). */
+    /** Offset between the phone's clock and the server's (corrected on a 403). */
     @Volatile
     var clockSkewSeconds: Long = 0
 
@@ -54,8 +54,8 @@ object EdgeProtocol {
     fun nowSeconds(): Long = System.currentTimeMillis() / 1000 + clockSkewSeconds
 
     /**
-     * Токенът Sec-MS-GEC: времето във формат на Windows (100 ns от 1601 г.),
-     * закръглено надолу до 5 минути, + TRUSTED_CLIENT_TOKEN -> SHA-256 (главни букви).
+     * The Sec-MS-GEC token: the time in Windows format (100 ns ticks since 1601),
+     * rounded down to 5 minutes, + TRUSTED_CLIENT_TOKEN -> SHA-256 (uppercase).
      */
     fun secMsGec(unixSeconds: Long): String {
         var seconds = unixSeconds + WIN_EPOCH
@@ -65,13 +65,13 @@ object EdgeProtocol {
         return digest.joinToString("") { "%02X".format(it) }
     }
 
-    /** Случаен идентификатор за бисквитката "muid" (32 шестнадесетични знака). */
+    /** Random identifier for the "muid" cookie (32 hex characters). */
     fun muid(): String = BigInteger(1, ByteArray(16).also { java.security.SecureRandom().nextBytes(it) })
         .toString(16).padStart(32, '0').uppercase(Locale.US)
 
     fun connectId(): String = UUID.randomUUID().toString().replace("-", "")
 
-    /** Дата като в JavaScript - сървърът я иска точно в този вид. */
+    /** A JavaScript-style date - the server requires exactly this format. */
     fun dateString(epochMillis: Long = System.currentTimeMillis()): String =
         SimpleDateFormat("EEE MMM dd yyyy HH:mm:ss 'GMT+0000 (Coordinated Universal Time)'", Locale.US)
             .apply { timeZone = TimeZone.getTimeZone("UTC") }
@@ -89,7 +89,7 @@ object EdgeProtocol {
         return "Microsoft Server Speech Text to Speech Voice ($lang-$region, $name)"
     }
 
-    /** Скорост 1.0 -> "+0%", 1.5 -> "+50%", 0.75 -> "-25%". */
+    /** Rate 1.0 -> "+0%", 1.5 -> "+50%", 0.75 -> "-25%". */
     fun rateString(rate: Float): String {
         val percent = Math.round((rate - 1f) * 100f)
         return if (percent >= 0) "+$percent%" else "$percent%"
@@ -106,7 +106,7 @@ object EdgeProtocol {
     fun ssmlMessage(text: String, voiceShortName: String, rate: Float, date: String = dateString()): String =
         "X-RequestId:${connectId()}\r\n" +
             "Content-Type:application/ssml+xml\r\n" +
-            "X-Timestamp:${date}Z\r\n" + // "Z" нарочно - така прави и Edge
+            "X-Timestamp:${date}Z\r\n" + // "Z" is intentional - Edge does the same
             "Path:ssml\r\n\r\n" +
             "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>" +
             "<voice name='${fullVoiceName(voiceShortName)}'>" +
@@ -114,7 +114,7 @@ object EdgeProtocol {
             escapeXml(cleanText(text)) +
             "</prosody></voice></speak>"
 
-    /** Знаци, които услугата не приема (напр. вертикална табулация от OCR) -> интервал. */
+    /** Characters the service rejects (e.g. vertical tabs from OCR) -> space. */
     fun cleanText(text: String): String = buildString(text.length) {
         for (c in text) {
             val code = c.code
@@ -135,12 +135,12 @@ object EdgeProtocol {
         }
     }
 
-    /** "Path" от заглавната част на текстово съобщение ("Path:turn.end" -> "turn.end"). */
+    /** "Path" from the header section of a text message ("Path:turn.end" -> "turn.end"). */
     fun textMessagePath(message: String): String? = headerValue(message.substringBefore("\r\n\r\n"), "Path")
 
     /**
-     * Двоично съобщение: първите 2 байта са дължината на заглавната част,
-     * следват заглавията и после звукът (MP3). Връща звука, ако Path е audio.
+     * Binary message: the first 2 bytes are the header length, followed by
+     * the headers and then the audio (MP3). Returns the audio if Path is audio.
      */
     fun audioPayload(data: ByteArray): ByteArray? {
         if (data.size < 2) return null
@@ -158,8 +158,8 @@ object EdgeProtocol {
         }
 
     /**
-     * Дълъг текст -> части до maxChars знака, рязани след изречение, нов ред
-     * или интервал. Първата част е по-къса, за да започне четенето по-бързо.
+     * Long text -> parts of up to maxChars characters, cut after a sentence, newline
+     * or space. The first part is shorter so that playback starts sooner.
      */
     fun splitText(text: String, maxChars: Int = 1200, firstMaxChars: Int = 300): List<String> {
         val parts = mutableListOf<String>()
@@ -182,7 +182,7 @@ object EdgeProtocol {
         return parts.filter { it.isNotEmpty() }
     }
 
-    /** Предпочитаният регион за езици, при които не е просто "език-ЕЗИК" (bg-BG, de-DE...). */
+    /** Preferred region for languages where it isn't simply "lang-LANG" (bg-BG, de-DE...). */
     private val PREFERRED_REGION = mapOf(
         "en" to "US", "uk" to "UA", "el" to "GR", "cs" to "CZ", "sl" to "SI", "et" to "EE",
         "sr" to "RS", "sv" to "SE", "da" to "DK", "nb" to "NO", "he" to "IL", "hi" to "IN",
@@ -190,9 +190,10 @@ object EdgeProtocol {
     )
 
     /**
-     * Гласът за даден език (BCP-47 етикет на Overlingo: "bg", "zh-CN", "nb")
-     * и предпочитан пол. Първо основният регион на езика, после всеки друг;
-     * ако няма глас от избрания пол - другият. null - Microsoft няма глас за езика.
+     * The voice for a given language (Overlingo BCP-47 tag: "bg", "zh-CN", "nb")
+     * and preferred gender. The language's main region first, then any other;
+     * if there is no voice of the chosen gender - the other one.
+     * null - Microsoft has no voice for the language.
      */
     fun pickVoice(voices: List<EdgeVoice>, languageTag: String, gender: VoiceGender): EdgeVoice? {
         val language = languageTag.substringBefore('-').lowercase(Locale.US)
@@ -211,8 +212,8 @@ object EdgeProtocol {
     }
 
     /**
-     * Където в един регион има много гласове - класическите, ясни гласове
-     * (иначе по азбучен ред би излязъл напр. детският en-US-AnaNeural).
+     * Where a region has many voices - the classic, clear ones
+     * (otherwise alphabetical order would pick e.g. the child voice en-US-AnaNeural).
      */
     private val PREFERRED_VOICES = setOf(
         "en-US-AriaNeural", "en-US-GuyNeural", "de-DE-KatjaNeural", "de-DE-ConradNeural",

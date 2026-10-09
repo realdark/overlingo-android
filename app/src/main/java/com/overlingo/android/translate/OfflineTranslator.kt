@@ -21,12 +21,12 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 /**
- * Превод на самия телефон (Google ML Kit) - без интернет, след като езиковите
- * модели (~30 MB на език) са свалени веднъж. Езикът на оригинала се разпознава
- * автоматично (ML Kit Language ID, вграден в APK-то).
+ * On-device translation (Google ML Kit) - works without internet once the language
+ * models (~30 MB per language) have been downloaded. The source language is detected
+ * automatically (ML Kit Language ID, bundled in the APK).
  *
- * allowDownload = false: само с вече свалени модели (за резервен превод,
- * когато няма интернет) - иначе хвърля OFFLINE_MODEL_MISSING.
+ * allowDownload = false: only with already downloaded models (for fallback translation
+ * when there's no internet) - otherwise throws OFFLINE_MODEL_MISSING.
  */
 class OfflineTranslator(context: Context) {
 
@@ -34,22 +34,22 @@ class OfflineTranslator(context: Context) {
     private val identifier = LanguageIdentification.getClient()
     private val modelManager = RemoteModelManager.getInstance()
 
-    /** Отворени преводачи по двойка езици ("en>bg") - създават се веднъж. */
+    /** Open translators per language pair ("en>bg") - created only once. */
     private val clients = mutableMapOf<String, MlKitTranslator>()
 
-    /** Превод и изтриване на модел не вървят едновременно (иначе изтриването затваря ползван преводач). */
+    /** Translating and deleting a model never run concurrently (otherwise deletion would close a translator in use). */
     private val lock = Mutex()
 
     private val _downloading = MutableStateFlow<String?>(null)
 
-    /** Код на езика (ML Kit), чийто модел се сваля в момента - за съобщение в интерфейса. */
+    /** ML Kit code of the language whose model is currently downloading - for a message in the UI. */
     val downloading: StateFlow<String?> = _downloading.asStateFlow()
 
     suspend fun translate(texts: List<String>, target: Language, allowDownload: Boolean): List<String> {
         val targetCode = mlKitCode(target.tag)
             ?: throw TranslationException(TranslationException.Kind.OFFLINE_UNSUPPORTED, target.tag)
-        // Езикът се разпознава веднъж за целия текст от снимката: кратките блокове
-        // поотделно често се "познават" грешно (и това би свалило излишни модели).
+        // The language is detected once for all the text in the photo: short blocks on
+        // their own are often "guessed" wrong (which would download unneeded models).
         val source = detectLanguage(texts.filter { it.isNotBlank() }.joinToString(" "))
         if (source == targetCode) return texts
         return lock.withLock {
@@ -72,7 +72,7 @@ class OfflineTranslator(context: Context) {
         throw TranslationException(TranslationException.Kind.OTHER, "ML Kit: ${e.message}", e)
     }
 
-    /** Сваля модела за езика, ако го няма (само първия път; нужен е интернет). */
+    /** Downloads the language model if missing (first time only; requires internet). */
     private suspend fun ensureModel(code: String, allowDownload: Boolean) {
         val model = TranslateRemoteModel.Builder(code).build()
         val downloaded = try {
@@ -84,7 +84,7 @@ class OfflineTranslator(context: Context) {
         }
         if (downloaded) return
         if (!allowDownload) throw TranslationException(TranslationException.Kind.OFFLINE_MODEL_MISSING, code)
-        // Без мрежа свалянето на ML Kit може да "виси" безкрайно - проверяваме предварително.
+        // Without a network the ML Kit download can "hang" forever - so we check beforehand.
         if (!hasInternet()) throw TranslationException(TranslationException.Kind.OFFLINE_DOWNLOAD_FAILED, code)
         _downloading.value = code
         try {
@@ -98,7 +98,7 @@ class OfflineTranslator(context: Context) {
         }
     }
 
-    /** Езикът на текста; при несигурност - английски (най-честият случай при снимки). */
+    /** The language of the text; if uncertain - English (the most common case for photos). */
     private suspend fun detectLanguage(text: String): String {
         val tag = try {
             identifier.identifyLanguage(text).await()
@@ -107,7 +107,7 @@ class OfflineTranslator(context: Context) {
         } catch (e: Exception) {
             UNDETERMINED
         }
-        // "ru-Latn", "bg-Latn"... = транскрипция на латиница; моделът за кирилица не я превежда.
+        // "ru-Latn", "bg-Latn"... = Latin transliteration; the Cyrillic model can't translate it.
         if (tag.endsWith("-Latn")) return TranslateLanguage.ENGLISH
         return mlKitCode(tag) ?: TranslateLanguage.ENGLISH
     }
@@ -117,7 +117,7 @@ class OfflineTranslator(context: Context) {
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    /** Свалените езикови модели (кодове на ML Kit, напр. "en", "bg"). Английският е вграден винаги. */
+    /** The downloaded language models (ML Kit codes, e.g. "en", "bg"). English is always built in. */
     suspend fun downloadedLanguages(): Set<String> =
         modelManager.getDownloadedModels(TranslateRemoteModel::class.java).await()
             .map { it.language }
@@ -140,8 +140,8 @@ class OfflineTranslator(context: Context) {
         private const val UNDETERMINED = "und"
 
         /**
-         * BCP-47 етикет -> код на ML Kit, или null ако ML Kit не поддържа езика.
-         * "nb" (норвежки) при ML Kit е "no"; "zh-CN" -> "zh".
+         * BCP-47 tag -> ML Kit code, or null if ML Kit doesn't support the language.
+         * "nb" (Norwegian) is "no" in ML Kit; "zh-CN" -> "zh".
          */
         fun mlKitCode(tag: String): String? {
             val base = tag.substringBefore('-').lowercase()

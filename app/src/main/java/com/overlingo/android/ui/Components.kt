@@ -43,7 +43,7 @@ import com.overlingo.android.R
 import com.overlingo.android.data.Language
 import com.overlingo.android.data.Languages
 
-/** Чип "→ Български": показва целевия език и при докосване отваря избора на език. */
+/** "→ Bulgarian" chip: shows the target language and opens the language picker on tap. */
 @Composable
 fun TargetLanguageChip(
     target: Language,
@@ -84,7 +84,7 @@ fun TargetLanguageChip(
     }
 }
 
-/** Списък с всички езици и търсене по име. */
+/** List of all languages with search by name. */
 @Composable
 fun LanguagePickerDialog(
     title: String,
@@ -136,7 +136,7 @@ fun LanguagePickerDialog(
     )
 }
 
-/** Бутони "Копирай" и "Прочети на глас" за един текст. */
+/** "Copy" and "Read aloud" buttons for a single text. */
 @Composable
 fun CopySpeakButtons(
     text: String,

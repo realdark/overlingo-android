@@ -125,11 +125,11 @@ fun ResultScreen(
 ) {
     var selectedBlock by rememberSaveable(photo.bitmap) { mutableStateOf<Int?>(null) }
     var showAll by rememberSaveable { mutableStateOf(false) }
-    // Избор какво да се прочете: докосваш блоковете, четат се в реда на докосване.
+    // Choosing what to read aloud: tap the blocks; they're read in the order tapped.
     var choosing by rememberSaveable(photo.bitmap) { mutableStateOf(false) }
     var chosen by rememberSaveable(photo.bitmap) { mutableStateOf(listOf<Int>()) }
     val hasResult = photo.phase == Phase.Done && photo.blocks.isNotEmpty() && photo.translations != null
-    // Без скритите прозорци - те не се четат, не са в "Целия текст" и не се запазват.
+    // Excluding hidden windows - they aren't read, aren't in "Full text" and aren't saved.
     val visible = remember(photo.translations, photo.hidden) { photo.visibleTranslations }
     val allTranslations = remember(visible) {
         visible.orEmpty().filter { it.isNotBlank() }.joinToString("\n\n")
@@ -147,7 +147,7 @@ fun ResultScreen(
     }
 
     BackHandler(enabled = choosing) { finishChoosing() }
-    // Нов превод (друг език, нова снимка) - изборът отпада.
+    // New translation (another language, new photo) - the selection is cleared.
     LaunchedEffect(hasResult) { if (!hasResult) finishChoosing() }
 
     Scaffold(
@@ -193,7 +193,7 @@ fun ResultScreen(
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // 🔊: избор кои блокове да се прочетат (или "Всички"); докато чете - спира.
+                    // 🔊: choose which blocks to read (or "All"); while reading, it stops playback.
                     if (hasResult) {
                         val speaking = speakingText != null
                         FloatingActionButton(
@@ -293,9 +293,9 @@ fun ResultScreen(
 }
 
 /**
- * Снимката с преводите, нарисувани върху текста. Два пръста приближават и
- * местят; преводите се мащабират заедно със снимката. Докосване на блок
- * отваря оригинала и превода.
+ * The photo with translations drawn over the text. Two fingers zoom and
+ * pan; the translations scale together with the photo. Tapping a block
+ * opens the original and the translation.
  */
 @Composable
 private fun PhotoWithOverlay(
@@ -317,12 +317,12 @@ private fun PhotoWithOverlay(
         val density = LocalDensity.current
         val containerW = constraints.maxWidth.toFloat()
         val containerH = constraints.maxHeight.toFloat()
-        // Коефициент снимка (px) -> екран (px) при "вмести изцяло"
+        // Scale factor photo (px) -> screen (px) at "fit entirely"
         val fit = min(containerW / photo.bitmap.width, containerH / photo.bitmap.height)
         val shownW = photo.bitmap.width * fit
         val shownH = photo.bitmap.height * fit
 
-        // Жестовете се хващат на целия екран (не само върху снимката), в екранни пиксели.
+        // Gestures are captured on the whole screen (not just over the photo), in screen pixels.
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -365,7 +365,7 @@ private fun PhotoWithOverlay(
                         style = style,
                         measurer = measurer,
                         choosing = choosing,
-                        // Поредният номер при четене (1, 2...) или null - не е избран.
+                        // Position in the reading order (1, 2...) or null - not selected.
                         readingNumber = chosen.indexOf(index).takeIf { it >= 0 }?.plus(1),
                         onClick = { onBlockClick(index) },
                     )
@@ -375,7 +375,7 @@ private fun PhotoWithOverlay(
     }
 }
 
-/** Един преведен блок: тъмен правоъгълник върху оригинала с превода, вписан в него. */
+/** One translated block: a dark rectangle over the original with the translation fitted inside. */
 @Composable
 private fun BlockOverlay(
     block: TextBlock,
@@ -388,7 +388,7 @@ private fun BlockOverlay(
     onClick: () -> Unit,
 ) {
     val density = LocalDensity.current
-    // Малко по-голям от самия текст, за да покрие и ръбовете на буквите.
+    // Slightly larger than the text itself, so it also covers the edges of the letters.
     val pad = block.lineHeight * 0.2f
     val left = (block.box.left - pad) * fit
     val top = (block.box.top - pad) * fit
@@ -403,7 +403,7 @@ private fun BlockOverlay(
         .clickable(onClick = onClick)
 
     val accent = MaterialTheme.colorScheme.primary
-    // При избор какво да се прочете: избраните - с дебела цветна рамка и номер.
+    // When choosing what to read: selected ones get a thick colored border and a number.
     val decorated = when {
         !choosing -> modifier
         readingNumber != null -> modifier.border(3.dp, accent, shape)
@@ -411,7 +411,7 @@ private fun BlockOverlay(
     }
 
     if (translation == null) {
-        // Оригиналът се вижда; само тънка рамка показва, че блокът може да се докосне.
+        // The original is visible; only a thin border shows that the block can be tapped.
         Box(decorated.border(1.dp, Color(style.outline), shape))
     } else {
         Box(
@@ -430,7 +430,7 @@ private fun BlockOverlay(
         }
     }
 
-    // Номерът - най-отгоре, над самия блок.
+    // The number - on top, above the block itself.
     if (readingNumber != null) {
         Box(
             contentAlignment = Alignment.Center,
@@ -444,7 +444,7 @@ private fun BlockOverlay(
     }
 }
 
-/** "Скрити: N · Покажи всички" - над снимката, докато има скрити прозорци. */
+/** "Hidden: N · Show all" - above the photo while there are hidden windows. */
 @Composable
 private fun HiddenBlocksChip(count: Int, onShowAll: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
@@ -473,13 +473,13 @@ private fun HiddenBlocksChip(count: Int, onShowAll: () -> Unit, modifier: Modifi
     }
 }
 
-/** Долната лента при избор какво да се прочете: Отказ / Всички / Прочети (N). */
+/** The bottom bar when choosing what to read: Cancel / All / Read (N). */
 @Composable
 private fun ChooseToReadBar(count: Int, onCancel: () -> Unit, onReadAll: () -> Unit, onReadChosen: () -> Unit) {
     Surface(
         color = Color(0xE6000000),
         shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.padding(start = 32.dp), // FAB-ът е вдясно - лентата да е почти на цялата ширина
+        modifier = Modifier.padding(start = 32.dp), // The FAB is on the right - keep the bar nearly full width
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -498,9 +498,9 @@ private fun ChooseToReadBar(count: Int, onCancel: () -> Unit, onReadAll: () -> U
 }
 
 /**
- * Текст, чийто размер се избира така, че да се събере в зададения правоъгълник
- * (двоично търсене по размера). Ако не се събира и с най-малкия шрифт,
- * блокът се удължава надолу.
+ * Text whose size is chosen so that it fits in the given rectangle
+ * (binary search over the size). If it doesn't fit even at the smallest font,
+ * the block is extended downward.
  */
 @Composable
 private fun FittedText(
@@ -524,7 +524,7 @@ private fun FittedText(
         val minPx = OverlayStyle.MIN_FONT_PX
         var low = minPx
         var high = max(minPx, maxFontPx)
-        repeat(7) { // ~0,5 px точност - повече не се вижда
+        repeat(7) { // ~0.5 px precision - more isn't visible
             val mid = (low + high) / 2f
             val measured = measurer.measure(
                 AnnotatedString(text),
@@ -536,11 +536,11 @@ private fun FittedText(
         low
     }
 
-    // Настройката "Размер на текста" - върху вписания размер; при по-голям прозорецът се удължава.
+    // The "Text size" setting - applied on top of the fitted size; if larger, the window is extended.
     Text(text = text, style = style(fontPx * scale), modifier = Modifier.padding(horizontal = 2.dp))
 }
 
-/** Карта със състоянието: разпознаване, превод, грешка, "няма текст". */
+/** Status card: recognizing, translating, error, "no text". */
 @Composable
 private fun StatusCard(photo: PhotoState, downloadingModel: String?, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     val phase = photo.phase
@@ -595,7 +595,7 @@ private fun ProgressRow(label: String) {
     }
 }
 
-/** Долен панел: оригинал и превод, с копиране и четене на глас. */
+/** Bottom sheet: original and translation, with copy and read aloud. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextDetailsSheet(
@@ -605,7 +605,7 @@ fun TextDetailsSheet(
     onSpeak: (String) -> Unit,
     onCopied: () -> Unit,
     onDismiss: () -> Unit,
-    /** null - без бутон за скриване (напр. "Целият текст"). */
+    /** null - no hide button (e.g. "Full text"). */
     hidden: Boolean? = null,
     onToggleHidden: () -> Unit = {},
 ) {
@@ -627,7 +627,7 @@ fun TextDetailsSheet(
             }
             if (hidden != null) {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                // Скритият прозорец не се вижда върху снимката и не влиза в запазената/споделената.
+                // A hidden window isn't shown on the photo and isn't included in the saved/shared one.
                 OutlinedButton(onClick = onToggleHidden, modifier = Modifier.fillMaxWidth()) {
                     Icon(
                         if (hidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -666,7 +666,7 @@ private fun SheetSection(label: String, text: String, actions: @Composable () ->
     }
 }
 
-/** Името на езика по код на ML Kit ("en" -> "Английски"). */
+/** The language name for an ML Kit code ("en" -> "English"). */
 @Composable
 fun modelName(code: String): String {
     val locale = uiLocale()
@@ -674,8 +674,8 @@ fun modelName(code: String): String {
 }
 
 /**
- * Бутон "Сподели" с меню: споделяне на снимката с преводите или запис в галерията.
- * На Android 8-9 записът иска разрешение за паметта - пита се при първия запис.
+ * "Share" button with a menu: share the photo with translations or save it to the gallery.
+ * On Android 8-9 saving needs the storage permission - it's requested on the first save.
  */
 @Composable
 private fun ExportMenu(enabled: Boolean, onSave: () -> Unit, onShare: () -> Unit, onDenied: () -> Unit) {

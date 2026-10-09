@@ -1,71 +1,63 @@
 # Overlingo for Android
 
-Снимаш текст и преводът се появява директно върху него. Мобилната версия на десктоп приложението Overlingo.
+*English · [Български](README_bg.md)*
 
-*English summary at the end.*
+Take a photo of text and the translation appears right on top of it. The mobile version of the [Overlingo](https://github.com/realdark/overlingo) desktop app.
 
-## Какво може (версия 1.8)
+## Features (version 1.8)
 
-- **Снимка → превод върху текста.** Насочваш камерата и снимаш. На снимката остава точно това, което се вижда на екрана. Приложението намира текста и рисува превода върху всеки блок (заглавие, текст, табела), без да маркираш нищо. Абзаците на един текст са в един прозорец, разделени с празен ред; отделните надписи и заглавия остават в свои прозорци.
-- **Докосване на блок** показва оригинала и превода, с бутони за копиране и четене на глас. Оттам блокът може и да се **скрие** - изчезва от снимката, не се чете и не влиза при запазване и споделяне (горе се вижда „N скрити · Покажи всички“; докосване на рамката го връща). Бутонът 🔊 до „Нова снимка“ пуска избор: докосваш блоковете, които искаш да чуеш (номерират се - четат се в реда на докосване), и натискаш „Прочети“; „Всички“ чете всичко наред. Докато чете, същият бутон спира четенето.
-- **Снимка от галерията** или **„Сподели“ → Overlingo** от друго приложение (снимка или текст).
-- **Превод на текст** (бутонът „Aa“): пишеш или поставяш текст.
-- **Приближаване** с два пръста. Бутонът 🖼/文 превключва между оригинал и превод, а „Целият текст“ показва всичко наведнъж.
-- **Услуги:** Google (безплатно, без ключ), DeepL, Microsoft (с API ключ) или **на самия телефон без интернет** (Google ML Kit; модел ~30 MB на език, сваля се веднъж). При грешка в DeepL или Microsoft превежда автоматично с Google; ако няма интернет и моделите за езиците вече са свалени, превежда на телефона.
-- **Запази / Сподели** (бутонът „Сподели“ горе): снимката с преводите върху нея се записва в галерията (Pictures/Overlingo) или се праща направо по Viber, WhatsApp и т.н.
-- **Прозорци с превод** (Настройки): размер на текста, плътност на фона, светли или тъмни прозорци - важи и за запазените снимки.
-- **Глас** (Настройки → „Кой чете превода“): по подразбиране вграденият гласов синтез на телефона - гласът за всеки език се сваля веднъж и после работи без интернет. Или **гласовете на Microsoft** - по-естествени, безплатни и без ключ (същите като в десктоп версията), с избор женски/мъжки глас; гласът се избира според езика на превода. Искат интернет - без връзка или ако Microsoft няма глас за езика, чете гласът на телефона.
-- **Интерфейс:** български или английски (или езикът на телефона).
+- **Photo → translation over the text.** Point the camera and take a photo. The photo keeps exactly what you saw on the screen. The app finds the text and draws the translation over each block (heading, text, sign) - no need to select anything. The paragraphs of one text share one window, separated by a blank line; separate labels and headings keep their own windows.
+- **Tap a block** to see the original and the translation, with buttons to copy and read aloud. From there the block can also be **hidden** - it disappears from the photo, isn't read aloud and isn't included when saving or sharing ("N hidden · Show all" appears at the top; tapping the frame brings it back). The 🔊 button next to "New photo" starts a selection: tap the blocks you want to hear (they get numbered and are read in the order you tapped them) and press "Read"; "All" reads everything in order. While reading, the same button stops it.
+- **Photo from the gallery** or **"Share" → Overlingo** from another app (a photo or text).
+- **Text translation** (the "Aa" button): type or paste text.
+- **Zoom** with two fingers. The 🖼/文 button switches between the original and the translation, and "All text" shows everything at once.
+- **Services:** Google (free, no key), DeepL, Microsoft (with an API key) or **on the phone, offline** (Google ML Kit; a model of ~30 MB per language, downloaded once). If DeepL or Microsoft fails, it translates with Google automatically; without internet, it translates on the phone if the models for the languages are already downloaded.
+- **Save / Share** (the "Share or save" button at the top): the photo with the translations on it is saved to the gallery (Pictures/Overlingo) or sent straight to Viber, WhatsApp, etc.
+- **Translation windows** (Settings): text size, background opacity, light or dark windows - also applied to saved photos.
+- **Voice** (Settings → "Who reads the translation"): by default the phone's built-in text-to-speech - the voice for each language is downloaded once and then works offline. Or **Microsoft voices** - more natural, free and without a key (the same as in the desktop version), with a female/male choice; the voice follows the translation language. They need internet - without a connection, or if Microsoft has no voice for the language, the phone's voice reads instead.
+- **Interface:** English or Bulgarian (or the phone's language).
 
-## Разпознаване на текста (Google ML Kit)
+## Text recognition (Google ML Kit)
 
-Текстът се разпознава с **Google ML Kit**. Моделът е вграден в APK-то (около 4 MB) и работи **без интернет**; не се сваля и не се инсталира нищо отделно. ML Kit е направен за снимки от камера: справя се с наклон, извити страници и неравна светлина, сам намира абзаците и редовете и е бърз (под половин секунда).
+Text is recognized with **Google ML Kit**. The model is bundled in the APK (about 4 MB) and works **offline**; nothing is downloaded or installed separately. ML Kit is made for camera photos: it copes with tilt, curved pages and uneven light, finds paragraphs and lines on its own and is fast (under half a second).
 
-**Ограничение:** засега се разпознава само текст на **латиница** (английски, немски, френски, испански, италиански, полски, турски…). Кирилица (български, руски), гръцки, арабски и др. не се четат. Ако потрябват, може да се добави отделен разпознавач за тях.
+**Limitation:** for now only **Latin-script** text is recognized (English, German, French, Spanish, Italian, Polish, Turkish…). Cyrillic (Bulgarian, Russian), Greek, Arabic etc. are not read. A separate recognizer can be added for them if needed.
 
-## Компилиране на APK
+## Building the APK
 
-Нужен е само **Android Studio** (безплатен: https://developer.android.com/studio).
+All you need is **Android Studio** (free: https://developer.android.com/studio).
 
-1. Разархивирай проекта и в Android Studio избери **File → Open → папката `overlingo-android`**.
-2. Изчакай „Gradle sync“. Първия път сваля библиотеките и отнема няколко минути.
-3. **Build → Generate App Bundles or APKs → Generate APKs** (в по-старите версии: *Build → Build Bundle(s) / APK(s) → Build APK(s)*). Ако менюто липсва, отвори панела **Gradle** (иконата със слонче вдясно) → *Overlingo → app → Tasks → build → assembleDebug*, или в таба **Terminal**: `.\gradlew.bat assembleDebug` (Windows) / `./gradlew assembleDebug` (Linux).
-4. Готовото APK е в `app/build/outputs/apk/debug/app-debug.apk` (Android Studio показва линк „locate“).
+1. Unzip the project and in Android Studio choose **File → Open → the `overlingo-android` folder**.
+2. Wait for the "Gradle sync". The first time it downloads the libraries and takes a few minutes.
+3. **Build → Generate App Bundles or APKs → Generate APKs** (in older versions: *Build → Build Bundle(s) / APK(s) → Build APK(s)*). If the menu is missing, open the **Gradle** panel (the elephant icon on the right) → *Overlingo → app → Tasks → build → assembleDebug*, or in the **Terminal** tab: `.\gradlew.bat assembleDebug` (Windows) / `./gradlew assembleDebug` (Linux).
+4. The APK is in `app/build/outputs/apk/debug/app-debug.apk` (Android Studio shows a "locate" link).
 
-### Инсталиране на телефона
+### Installing on the phone
 
-- **С кабел:** включи „Опции за програмисти → USB отстраняване на грешки“ на телефона, свържи го и натисни ▶ Run в Android Studio.
-- **Без кабел:** копирай `app-debug.apk` на телефона (Drive, Telegram, USB) и го отвори. Android ще поиска разрешение „Инсталиране от неизвестни източници“ за приложението, от което го отваряш.
+- **With a cable:** enable "Developer options → USB debugging" on the phone, connect it and press ▶ Run in Android Studio.
+- **Without a cable:** copy `app-debug.apk` to the phone (Drive, Telegram, USB) and open it. Android will ask to allow "Install unknown apps" for the app you open it from.
 
-### От командния ред (по желание)
+### From the command line (optional)
 
 ```
 ./gradlew assembleDebug        # Linux/macOS
 gradlew.bat assembleDebug      # Windows
-./gradlew testDebugUnitTest    # тестове на логиката
+./gradlew testDebugUnitTest    # logic tests
 ```
 
-Нужна е променлива `ANDROID_HOME` или файл `local.properties` с `sdk.dir=...`. Android Studio ги създава сам.
+You need an `ANDROID_HOME` variable or a `local.properties` file with `sdk.dir=...`. Android Studio creates them for you.
 
-## Структура
+## Structure
 
 ```
 app/src/main/java/com/overlingo/android/
-  MainActivity.kt          стартиране + "Сподели"
-  data/                    езици, настройки (DataStore)
-  ocr/                     ML Kit, почистване на блоковете, зареждане на снимки
-  translate/               Google / DeepL / Microsoft / на телефона (ML Kit), кеш, резервен превод
-  export/                  рисуване на преводите върху снимката, запис и споделяне
-  tts/                     четене на глас: Android TextToSpeech или гласовете на Microsoft (Edge)
-  ui/                      екрани (Jetpack Compose) и MainViewModel
-app/src/main/res/values*/  текстове: values (EN) и values-bg (BG)
-app/src/test/              тестове на логиката (JUnit)
+  MainActivity.kt          startup + "Share"
+  data/                    languages, settings (DataStore)
+  ocr/                     ML Kit, block cleanup, loading photos
+  translate/               Google / DeepL / Microsoft / on the phone (ML Kit), cache, fallback
+  export/                  drawing the translations on the photo, saving and sharing
+  tts/                     reading aloud: Android TextToSpeech or Microsoft (Edge) voices
+  ui/                      screens (Jetpack Compose) and MainViewModel
+app/src/main/res/values*/  texts: values (EN) and values-bg (BG)
+app/src/test/              logic tests (JUnit)
 ```
-
----
-
-## English summary
-
-Take a photo of text and Overlingo draws the translation right on top of it. Text recognition uses Google ML Kit (bundled, offline, Latin script only for now). Translation uses Google (free), DeepL, Microsoft or on-device ML Kit (offline), translated photos can be saved or shared, and voice uses the phone's text-to-speech (default) or Microsoft's free neural voices (online, with the phone voice as fallback).
-
-**Build:** open the folder in Android Studio, wait for the Gradle sync, then choose *Build → Generate App Bundles or APKs → Generate APKs* (or run the Gradle task `assembleDebug`). The APK is in `app/build/outputs/apk/debug/`. Copy it to the phone and install it (allow "install unknown apps").

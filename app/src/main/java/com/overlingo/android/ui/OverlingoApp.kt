@@ -86,7 +86,7 @@ fun OverlingoApp(viewModel: MainViewModel) {
         )
     }
 
-    // Кратки съобщения (копирано, резервна услуга, грешки при сваляне...)
+    // Short messages (copied, fallback service, download errors...)
     LaunchedEffect(state.toast) {
         state.toast?.let {
             Toast.makeText(context, it.render(context), Toast.LENGTH_LONG).show()
@@ -94,14 +94,14 @@ fun OverlingoApp(viewModel: MainViewModel) {
         }
     }
 
-    // Снимката с преводите е готова за споделяне - отваряме менюто "Сподели" на Android.
+    // The image with translations is ready to share - open Android's "Share" sheet.
     LaunchedEffect(state.shareUri) {
         state.shareUri?.let { uri ->
             val send = Intent(Intent.ACTION_SEND)
                 .setType("image/jpeg")
                 .putExtra(Intent.EXTRA_STREAM, uri)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            // ClipData - за прегледа в менюто "Сподели" и за правото на четене през него
+            // ClipData - for the preview in the "Share" sheet and for granting read access through it
             send.clipData = ClipData.newRawUri(null, uri)
             openActivity(context, Intent.createChooser(send, null))
             viewModel.consumeShareUri()
@@ -113,7 +113,7 @@ fun OverlingoApp(viewModel: MainViewModel) {
     }
 }
 
-/** Текстът на съобщението на езика на интерфейса + детайлът след него. */
+/** The message text in the UI language + the detail after it. */
 fun UiMessage.render(context: Context): String {
     val main = context.getString(res)
     return if (detail.isBlank()) main else "$main ($detail)"
@@ -125,7 +125,7 @@ fun UiMessage.text(): String {
     return if (detail.isBlank()) main else "$main ($detail)"
 }
 
-/** Локалът на интерфейса - за имената на езиците ("Немски" / "German"). */
+/** The UI locale - for language names (Bulgarian "Nemski" / English "German"). */
 @Composable
 fun uiLocale(): Locale = LocalConfiguration.current.locales[0]
 
