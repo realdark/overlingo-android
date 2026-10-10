@@ -47,6 +47,36 @@ gradlew.bat assembleDebug      # Windows
 
 You need an `ANDROID_HOME` variable or a `local.properties` file with `sdk.dir=...`. Android Studio creates them for you.
 
+## Automatic builds (GitHub Actions)
+
+`.github/workflows/build.yml` builds the APK on GitHub, like the desktop version:
+
+- **Publishing a release** with the tag `v` + `versionName` (e.g. `v1.8`): it runs the tests, builds a **signed** APK and attaches it to the release as `Overlingo-1.8-android.apk`.
+- **Actions → Build APK → Run workflow**: the same, without a release - the APK is in the run's *Artifacts* (a debug APK if the signing secrets aren't set).
+
+### One-time setup: the signing key
+
+Android only installs an update over an app signed with the **same key**, so the release APKs need one permanent key.
+
+1. Create it (PowerShell; `keytool` comes with Android Studio). It asks for a password and a name:
+   ```
+   & "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore overlingo-release.jks -alias overlingo -keyalg RSA -keysize 2048 -validity 10000
+   ```
+   Keep `overlingo-release.jks` **outside the project folder** and back it up (with the password). If it's lost, updates can't be installed over the existing app.
+2. Encode it for GitHub:
+   ```
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("overlingo-release.jks")) | Set-Content keystore-base64.txt
+   ```
+3. On GitHub: **Settings → Secrets and variables → Actions → New repository secret**, four times:
+   - `OVERLINGO_KEYSTORE_BASE64` - the contents of `keystore-base64.txt`
+   - `OVERLINGO_KEYSTORE_PASSWORD` - the keystore password
+   - `OVERLINGO_KEY_ALIAS` - `overlingo`
+   - `OVERLINGO_KEY_PASSWORD` - the key password (the same, unless you set a different one)
+
+   Then delete `keystore-base64.txt`.
+
+**Switching from a debug APK:** the APK from Android Studio is signed with a different (debug) key, so the first signed APK installs only after uninstalling the old app once (its settings and downloaded models go with it). After that, every new release installs as an update.
+
 ## Structure
 
 ```

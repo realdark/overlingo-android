@@ -16,10 +16,27 @@ android {
         versionName = "1.8"
     }
 
+    // Release signing key - only from environment variables (GitHub Actions puts the
+    // keystore from the repository secrets there, see .github/workflows/build.yml).
+    // Never commit the keystore or its passwords. Without them, assembleRelease
+    // produces an unsigned APK; for local builds use assembleDebug as before.
+    val releaseKeystore = System.getenv("OVERLINGO_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("OVERLINGO_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("OVERLINGO_KEY_ALIAS")
+                keyPassword = System.getenv("OVERLINGO_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             // No R8 - the APK is for personal use, and ML Kit doesn't require shrinking.
             isMinifyEnabled = false
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 

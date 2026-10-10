@@ -47,6 +47,36 @@ gradlew.bat assembleDebug      # Windows
 
 Нужна е променлива `ANDROID_HOME` или файл `local.properties` с `sdk.dir=...`. Android Studio ги създава сам.
 
+## Автоматичен build (GitHub Actions)
+
+`.github/workflows/build.yml` прави APK-то в GitHub, както при десктоп версията:
+
+- **Публикуван release** с таг `v` + `versionName` (напр. `v1.8`): пуска тестовете, прави **подписано** APK и го закача към release-а като `Overlingo-1.8-android.apk`.
+- **Actions → Build APK → Run workflow**: същото, без release - APK-то е в *Artifacts* на изпълнението (debug APK, ако няма секрети за подписване).
+
+### Еднократно: ключът за подписване
+
+Android инсталира обновление само върху приложение, подписано със **същия ключ**, затова release APK-тата искат един постоянен ключ.
+
+1. Създай го (PowerShell; `keytool` идва с Android Studio). Ще поиска парола и име:
+   ```
+   & "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore overlingo-release.jks -alias overlingo -keyalg RSA -keysize 2048 -validity 10000
+   ```
+   Пази `overlingo-release.jks` **извън папката на проекта** и му направи резервно копие (заедно с паролата). Ако се загуби, обновленията няма да се инсталират върху съществуващото приложение.
+2. Кодирай го за GitHub:
+   ```
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("overlingo-release.jks")) | Set-Content keystore-base64.txt
+   ```
+3. В GitHub: **Settings → Secrets and variables → Actions → New repository secret**, четири пъти:
+   - `OVERLINGO_KEYSTORE_BASE64` - съдържанието на `keystore-base64.txt`
+   - `OVERLINGO_KEYSTORE_PASSWORD` - паролата на keystore-а
+   - `OVERLINGO_KEY_ALIAS` - `overlingo`
+   - `OVERLINGO_KEY_PASSWORD` - паролата на ключа (същата, ако не си задал друга)
+
+   След това изтрий `keystore-base64.txt`.
+
+**Преход от debug APK:** APK-то от Android Studio е подписано с друг (debug) ключ, затова първото подписано APK се инсталира само след еднократно деинсталиране на старото приложение (настройките и свалените модели се губят). След това всеки нов release се инсталира като обновление.
+
 ## Структура
 
 ```

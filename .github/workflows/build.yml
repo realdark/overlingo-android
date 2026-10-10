@@ -1,0 +1,104 @@
+# Builds the APK in GitHub Actions.
+#
+# - Publishing a release (tag "v" + versionName, e.g. v1.8): tests, a signed
+#   release APK, attached to the release as Overlingo-<version>-android.apk.
+# - "Run workflow" by hand (Actions tab): the same, but the APK is only an
+#   artifact of the run (signed if the secrets exist, otherwise a debug APK).
+#
+# Signing needs four repository secrets (Settings -> Secrets and variables -> Actions):
+#   OVERLINGO_KEYSTORE_BASE64    the .jks keystore, base64-encoded
+#   OVERLINGO_KEYSTORE_PASSWORD  keystore password
+#   OVERLINGO_KEY_ALIAS          key alias
+#   OVERLINGO_KEY_PASSWORD       key password
+# See "Automatic builds" in README.md.
+
+name: Build APK
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # attach the APK to the release
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Version
+        id: version
+        run: |
+          VERSION="$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)"
+          if [ -z "$VERSION" ]; then echo "::error::versionName not found in app/build.gradle.kts"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "release" ] && [ "${{ github.event.release.tag_name }}" != "v$VERSION" ]; then
+            echo "::error::The release tag (${{ github.event.release.tag_name }}) doesn't match versionName (v$VERSION) - change one of them."
+            exit 1
+          fi
+
+      # On Windows the executable bit of gradlew is often lost on commit.
+      - run: chmod +x gradlew
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Signing key
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.OVERLINGO_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "OVERLINGO_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            echo "::error::No OVERLINGO_KEYSTORE_BASE64 secret - a release needs a signed APK (see README.md)."
+            exit 1
+          else
+            echo "::warning::No signing secrets - building a debug APK."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build APK
+        env:
+          OVERLINGO_KEYSTORE_PASSWORD: ${{ secrets.OVERLINGO_KEYSTORE_PASSWORD }}
+          OVERLINGO_KEY_ALIAS: ${{ secrets.OVERLINGO_KEY_ALIAS }}
+          OVERLINGO_KEY_PASSWORD: ${{ secrets.OVERLINGO_KEY_PASSWORD }}
+        run: |
+          mkdir -p dist
+          VERSION="${{ steps.version.outputs.version }}"
+          if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then
+            ./gradlew assembleRelease --stacktrace
+            cp app/build/outputs/apk/release/app-release.apk "dist/Overlingo-$VERSION-android.apk"
+          else
+            ./gradlew assembleDebug --stacktrace
+            cp app/build/outputs/apk/debug/app-debug.apk "dist/Overlingo-$VERSION-android-debug.apk"
+          fi
+          ls -l dist
+
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Overlingo-android
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
