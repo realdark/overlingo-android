@@ -417,6 +417,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         when (event) {
             Speaker.Event.MicrosoftNoVoice -> showToast(UiMessage(R.string.tts_ms_no_voice))
             is Speaker.Event.MicrosoftFailed -> showToast(UiMessage(R.string.tts_ms_failed, event.detail))
+            Speaker.Event.MicrosoftOffline -> showToast(UiMessage(R.string.tts_ms_offline))
             is Speaker.Event.PhoneResult -> handleSpeakResult(event.result)
         }
     }

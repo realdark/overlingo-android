@@ -4,7 +4,7 @@
 
 Take a photo of text and the translation appears right on top of it. The mobile version of the [Overlingo](https://github.com/realdark/overlingo) desktop app.
 
-## Features (version 1.8)
+## Features (version 1.8.1)
 
 - **Photo → translation over the text.** Point the camera and take a photo. The photo keeps exactly what you saw on the screen. The app finds the text and draws the translation over each block (heading, text, sign) - no need to select anything. The paragraphs of one text share one window, separated by a blank line; separate labels and headings keep their own windows.
 - **Tap a block** to see the original and the translation, with buttons to copy and read aloud. From there the block can also be **hidden** - it disappears from the photo, isn't read aloud and isn't included when saving or sharing ("N hidden · Show all" appears at the top; tapping the frame brings it back). The 🔊 button next to "New photo" starts a selection: tap the blocks you want to hear (they get numbered and are read in the order you tapped them) and press "Read"; "All" reads everything in order. While reading, the same button stops it.

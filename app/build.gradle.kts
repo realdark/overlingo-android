@@ -12,8 +12,8 @@ android {
         applicationId = "com.overlingo.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.8"
+        versionCode = 15
+        versionName = "1.8.1"
     }
 
     // Release signing key - only from environment variables (GitHub Actions puts the

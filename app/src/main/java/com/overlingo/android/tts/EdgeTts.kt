@@ -2,6 +2,8 @@ package com.overlingo.android.tts
 
 import com.overlingo.android.translate.HttpStatusException
 import com.overlingo.android.translate.fetch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -31,7 +33,10 @@ class EdgeTtsException(message: String, val status: Int = 0) : IOException(messa
 class EdgeTts(private val http: OkHttpClient) {
 
     private companion object {
-        const val TIMEOUT_MS = 30_000L
+        /** One attempt; with the retries the phone voice takes over after ~45 s at most. */
+        const val TIMEOUT_MS = 15_000L
+        /** Waits before the 2nd and 3rd attempt. */
+        val RETRY_DELAYS_MS = listOf(700L, 1_500L)
     }
 
     private val voicesLock = Mutex()
@@ -39,16 +44,42 @@ class EdgeTts(private val http: OkHttpClient) {
 
     /** The voice list - downloaded once (about 400 voices) and kept in memory. */
     suspend fun voices(): List<EdgeVoice> = voicesLock.withLock {
-        voices ?: retryOnClockSkew { fetchVoices() }.also { voices = it }
+        voices ?: retryTransient { retryOnClockSkew { fetchVoices() } }.also { voices = it }
     }
 
     suspend fun voiceFor(languageTag: String, gender: VoiceGender): EdgeVoice? =
         EdgeProtocol.pickVoice(voices(), languageTag, gender)
 
     /** Synthesizes one part of the text (up to ~1200 characters) and returns MP3. */
-    suspend fun synthesize(text: String, voice: EdgeVoice, rate: Float): ByteArray = retryOnClockSkew {
-        // WebSocket has no response timeout of its own - without this it would wait forever.
-        withTimeoutOrNull(TIMEOUT_MS) { synthesizeOnce(text, voice, rate) } ?: throw EdgeTtsException("timeout")
+    suspend fun synthesize(text: String, voice: EdgeVoice, rate: Float): ByteArray = retryTransient {
+        retryOnClockSkew {
+            // WebSocket has no response timeout of its own - without this it would wait forever.
+            withTimeoutOrNull(TIMEOUT_MS) { synthesizeOnce(text, voice, rate) } ?: throw EdgeTtsException("timeout")
+        }
+    }
+
+    /**
+     * Mobile data often drops a single connection or answers slowly for a moment -
+     * that used to switch straight to the phone voice ("needs internet"). Temporary
+     * errors are retried twice; a real refusal (4xx) is not.
+     */
+    private suspend fun <T> retryTransient(block: suspend () -> T): T {
+        var attempt = 0
+        while (true) {
+            try {
+                return block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                if (attempt >= RETRY_DELAYS_MS.size || !isTransient(e)) throw e
+                delay(RETRY_DELAYS_MS[attempt++])
+            }
+        }
+    }
+
+    private fun isTransient(e: IOException): Boolean {
+        val status = (e as? EdgeTtsException)?.status ?: (e as? HttpStatusException)?.code ?: 0
+        return status == 0 || status == 429 || status >= 500
     }
 
     private suspend fun fetchVoices(): List<EdgeVoice> {
@@ -99,6 +130,13 @@ class EdgeTts(private val http: OkHttpClient) {
 
                 override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
                     EdgeProtocol.audioPayload(bytes.toByteArray())?.let { audio.write(it) }
+                }
+
+                // The server closed the connection before "turn.end" - without this we
+                // only noticed it when the timeout ran out.
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    webSocket.close(1000, null)
+                    if (cont.isActive) cont.resumeWithException(EdgeTtsException("closed by the server ($code)"))
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {

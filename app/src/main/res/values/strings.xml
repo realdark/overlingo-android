@@ -70,7 +70,8 @@
     <string name="tts_error">Voice playback failed</string>
     <string name="tts_install_voice">Download voice</string>
     <string name="tts_missing_data">The voice for this language is not downloaded yet. Download it from the phone\'s text-to-speech settings - it then works offline.</string>
-    <string name="tts_ms_failed">Microsoft voice is not available (it needs internet) - reading with the phone voice</string>
+    <string name="tts_ms_failed">Microsoft voice failed - reading with the phone voice</string>
+    <string name="tts_ms_offline">No internet - reading with the phone voice</string>
     <string name="tts_ms_no_voice">Microsoft has no voice for this language - reading with the phone voice</string>
     <string name="tts_not_ready">The voice engine is still starting - try again in a second</string>
     <string name="tts_not_supported">The phone\'s voice engine does not support this language. You can switch the engine (e.g. to Google Speech Services) in the text-to-speech settings.</string>

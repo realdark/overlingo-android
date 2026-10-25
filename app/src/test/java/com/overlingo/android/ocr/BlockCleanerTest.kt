@@ -77,4 +77,57 @@ class BlockCleanerTest {
         val sideBySide = block(600, 10, "Action dice")
         assertEquals(3, BlockCleaner.clean(listOf(top, farBelow, sideBySide)).size)
     }
+    /** A block whose lines start at different x (centred or ragged text); line spacing 26, height 20. */
+    private fun ragged(y: Int, vararg lines: Pair<Int, String>, h: Int = 20): TextBlock =
+        TextBlock.of(lines.mapIndexed { i, (x, text) ->
+            var cursor = x
+            TextLine(text.split(" ").map { w ->
+                OcrWord(w, Box(cursor, y + i * 26, cursor + w.length * h / 2, y + i * 26 + h))
+                    .also { cursor = it.box.right + h / 3 }
+            })
+        })
+
+    @Test
+    fun centredParagraphsBecomeOneBlock() {
+        // Centred text: the lines start at different x, the centres match.
+        val first = ragged(10, 100 to "The sound of a gunshot from", 60 to "the penthouse briefly drowns out")
+        val second = ragged(10 + 52 + 20, 140 to "What is going on?")
+        assertEquals(1, BlockCleaner.clean(listOf(first, second)).size)
+    }
+
+    @Test
+    fun textWrappedAroundAPictureBecomesOneBlock() {
+        // The right edge is the same, the left one moves (a picture on the left), and ML Kit
+        // cut it into blocks - one paragraph, one box, no blank line in the middle.
+        val top = ragged(10, 0 to "I got to the theatre around noon and", 0 to "went to say hello to Mr Winsley today")
+        // Narrower lines, pushed right by the picture: only the right edge matches.
+        val bottom = ragged(10 + 52 + 6, 180 to "ask him for money", 182 to "he is paid little")
+        assertEquals(true, kotlin.math.abs(top.box.right - bottom.box.right) < 30)
+        assertEquals(true, kotlin.math.abs(top.box.left - bottom.box.left) > 30)
+        val result = BlockCleaner.clean(listOf(top, bottom))
+        assertEquals(1, result.size)
+        assertEquals(1, result[0].paragraphs.size)
+    }
+
+    @Test
+    fun shortCentredLineBetweenParagraphsJoinsTheText() {
+        // Like the photo: a short centred line that ML Kit put in its own block, between
+        // the paragraph above and its continuation below.
+        val above = ragged(10, 40 to "the bosses henchmen begin to look worried.", 160 to "What is going on?")
+        val line = ragged(10 + 52 + 20, 100 to "You give the order for the officers")
+        val below = ragged(10 + 52 + 20 + 26, 60 to "to move in. Swiftly the henchmen make", 120 to "their escape while the bosses")
+        val result = BlockCleaner.clean(listOf(above, line, below))
+        assertEquals(1, result.size)
+        assertEquals(2, result[0].paragraphs.size)
+        assertEquals(true, result[0].paragraphTexts[1].startsWith("You give the order for the officers to move in."))
+    }
+
+    @Test
+    fun alignment() {
+        val a = Box(100, 0, 500, 20)
+        assertEquals(true, BlockCleaner.aligned(a, Box(105, 30, 300, 50), 30f))   // left
+        assertEquals(true, BlockCleaner.aligned(a, Box(300, 30, 495, 50), 30f))   // right
+        assertEquals(true, BlockCleaner.aligned(a, Box(200, 30, 400, 50), 30f))   // centre
+        assertEquals(false, BlockCleaner.aligned(a, Box(0, 30, 200, 50), 30f))
+    }
 }

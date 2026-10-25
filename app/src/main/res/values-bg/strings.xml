@@ -69,7 +69,8 @@
     <string name="tts_error">Четенето на глас не сработи</string>
     <string name="tts_install_voice">Свали глас</string>
     <string name="tts_missing_data">Гласът за този език още не е свален. Свали го от настройките за гласов синтез на телефона - после работи без интернет.</string>
-    <string name="tts_ms_failed">Гласът на Microsoft не е достъпен (нужен е интернет) - чете гласът на телефона</string>
+    <string name="tts_ms_failed">Гласът на Microsoft не успя - чете гласът на телефона</string>
+    <string name="tts_ms_offline">Няма интернет - чете гласът на телефона</string>
     <string name="tts_ms_no_voice">Microsoft няма глас за този език - чете гласът на телефона</string>
     <string name="tts_not_ready">Гласовият синтез още се стартира - опитай след секунда</string>
     <string name="tts_not_supported">Гласовият модул на телефона не поддържа този език. Можеш да смениш модула (напр. на Google Speech Services) от настройките за гласов синтез.</string>

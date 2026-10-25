@@ -1,6 +1,8 @@
 package com.overlingo.android.tts
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.media.MediaPlayer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -51,14 +53,23 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
         /** Microsoft has no voice for the language - the phone reads instead. */
         data object MicrosoftNoVoice : Event
 
-        /** The Microsoft voice is unavailable (usually no internet) - the phone reads instead. */
+        /** The Microsoft voice failed (detail = the reason) - the phone reads instead. */
         data class MicrosoftFailed(val detail: String) : Event
+
+        /** No internet on the phone - the phone voice reads instead. */
+        data object MicrosoftOffline : Event
 
         /** The result of the fallback reading with the phone's voice, if it failed to start. */
         data class PhoneResult(val result: Result) : Event
     }
 
     private val appContext = context.applicationContext
+    private val connectivity = appContext.getSystemService(ConnectivityManager::class.java)
+
+    private fun hasInternet(): Boolean {
+        val capabilities = connectivity?.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
     private val edge = EdgeTts(http)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var edgeJob: Job? = null
@@ -199,10 +210,13 @@ class Speaker(context: Context, http: OkHttpClient, private val onEvent: (Event)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // When offline the message already says so - technical detail only for other errors.
-                val offline = e is java.net.UnknownHostException || e is java.net.ConnectException ||
-                    e is java.net.SocketTimeoutException
-                Event.MicrosoftFailed(if (offline) "" else e.message ?: e.javaClass.simpleName)
+                // "No internet" only when the phone really has none - otherwise the real
+                // reason (timeout, refused...), so it isn't blamed on the connection.
+                if (!hasInternet()) {
+                    Event.MicrosoftOffline
+                } else {
+                    Event.MicrosoftFailed((e.message ?: e.javaClass.simpleName).take(80))
+                }
             }
             if (fallback != null) {
                 // Don't stop on error - the remainder is read with the phone's voice.

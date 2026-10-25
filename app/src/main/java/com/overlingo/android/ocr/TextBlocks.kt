@@ -81,15 +81,28 @@ data class TextBlock(val paragraphs: List<List<TextLine>>) {
  *    on top of each other);
  *  - "text" with fewer than 2 letters is dropped (icons, dice, noise);
  *  - paragraphs of the same text (stacked in one column, with similar
- *    letter size) become one box; separate labels and headings stay separate;
+ *    letter size) become one box - aligned left, right OR centred (ML Kit
+ *    often splits centred text and text that wraps around a picture);
+ *    separate labels and headings stay separate;
+ *  - pieces of one paragraph (normal line spacing between them) are joined
+ *    back into one paragraph, not separated by a blank line;
  *  - sorts them top to bottom, left to right.
  */
 object BlockCleaner {
 
     fun clean(blocks: List<TextBlock>): List<TextBlock> {
-        val withoutNoise = mergeWhile(blocks, ::overlapping)
+        var current = mergeWhile(blocks, ::overlapping)
             .filter { block -> block.text.count { it.isLetter() } >= 2 }
-        return mergeWhile(withoutNoise, ::sameColumnParagraphs)
+        // Merging paragraphs can make a block grow over another one (a short centred line
+        // between two paragraphs) - so both steps repeat until nothing changes.
+        while (true) {
+            val next = mergeWhile(mergeWhile(current, ::sameColumnParagraphs), ::overlapping)
+            val changed = next.size != current.size
+            current = next
+            if (!changed) break
+        }
+        return current
+            .map(::joinContinuedParagraphs)
             .sortedWith(compareBy({ it.box.top }, { it.box.left }))
     }
 
@@ -110,8 +123,42 @@ object BlockCleaner {
 
         val narrower = min(upper.box.width, lower.box.width)
         val sameColumn = upper.box.horizontalOverlap(lower.box) >= 0.6f * narrower
-        val alignedLeft = abs(upper.box.left - lower.box.left) <= 1.5f * h
-        return sameColumn && alignedLeft
+        return sameColumn && aligned(upper.box, lower.box, 1.5f * h)
+    }
+
+    /** Same left edge, same right edge or same centre (centred text). */
+    internal fun aligned(a: Box, b: Box, tolerance: Float): Boolean =
+        abs(a.left - b.left) <= tolerance ||
+            abs(a.right - b.right) <= tolerance ||
+            abs((a.left + a.right) - (b.left + b.right)) / 2f <= tolerance
+
+    /**
+     * ML Kit sometimes cuts one paragraph into several blocks. After merging, pieces
+     * with normal line spacing between them (not a paragraph gap) become one paragraph
+     * again - so it is translated as one sentence, without a blank line in the middle.
+     */
+    private fun joinContinuedParagraphs(block: TextBlock): TextBlock {
+        if (block.paragraphs.size < 2) return block
+        val h = block.lineHeight
+        val result = mutableListOf<List<TextLine>>()
+        for (paragraph in block.paragraphs.sortedBy { it.first().box.top }) {
+            val previous = result.lastOrNull()
+            if (previous != null && continues(previous, paragraph, h)) {
+                result[result.size - 1] = previous + paragraph
+            } else {
+                result += paragraph
+            }
+        }
+        return if (result.size == block.paragraphs.size) block else TextBlock(result)
+    }
+
+    private fun continues(upper: List<TextLine>, lower: List<TextLine>, h: Float): Boolean {
+        val upperBox = upper.map { it.box }.reduce(Box::union)
+        val lowerBox = lower.map { it.box }.reduce(Box::union)
+        val gap = lowerBox.top - upperBox.bottom
+        val narrower = min(upperBox.width, lowerBox.width)
+        return gap >= -0.5f * h && gap < 0.7f * h &&
+            upperBox.horizontalOverlap(lowerBox) >= 0.5f * narrower
     }
 
     /** Merges pairs of blocks as long as there are any for which [shouldMerge] is true. */
